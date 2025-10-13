@@ -34,10 +34,11 @@ export class NewsService {
 
       const response = await axios.get(NEWSDATA_BASE_URL, { params });
 
-      if (response.data && response.data.results) {
+      if (response.data && response.data.results && response.data.results.length > 0) {
         return response.data.results.map((item: any) => this.mapToNewsArticle(item, category));
       }
 
+      console.log(`No results from API for category ${category}, using mock data`);
       return this.getMockNews(category);
     } catch (error) {
       console.error("Error fetching news from NewsData.io:", error);

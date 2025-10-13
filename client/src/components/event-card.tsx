@@ -49,12 +49,15 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         {event.imageUrl && (
-          <div className="w-24 h-24 flex-shrink-0 rounded-md overflow-hidden">
+          <div className="w-24 h-24 flex-shrink-0 rounded-md overflow-hidden bg-muted">
             <img
               src={event.imageUrl}
               alt={event.title}
               className="w-full h-full object-cover"
               data-testid={`img-event-${event.id}`}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </div>
         )}

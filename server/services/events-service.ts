@@ -24,7 +24,7 @@ export class EventsService {
         id: randomUUID(),
         title: "Flamengo x Palmeiras",
         description: "Decisão do Campeonato Brasileiro no Maracanã. Ingresso disponível.",
-        imageUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&q=80",
         category: "esportes",
         date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         time: "16:00",
