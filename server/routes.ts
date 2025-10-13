@@ -175,6 +175,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API Health Check and Diagnostics
+  app.get("/api/health", async (req, res) => {
+    const diagnostics: any = {
+      timestamp: new Date().toISOString(),
+      apis: {
+        newsdata: {
+          name: "NewsData.io",
+          configured: !!process.env.NEWSDATA_API_KEY,
+          status: "unknown",
+          message: "",
+        },
+        thesportsdb: {
+          name: "TheSportsDB",
+          configured: true,
+          status: "unknown",
+          message: "",
+        },
+        sympla: {
+          name: "Sympla",
+          configured: !!process.env.SYMPLA_API_KEY,
+          status: process.env.SYMPLA_API_KEY ? "configured" : "not_configured",
+          message: process.env.SYMPLA_API_KEY ? "API key configured" : "API key not configured",
+        },
+        eventbrite: {
+          name: "Eventbrite",
+          configured: !!process.env.EVENTBRITE_API_KEY,
+          status: process.env.EVENTBRITE_API_KEY ? "configured" : "not_configured",
+          message: process.env.EVENTBRITE_API_KEY ? "API key configured" : "API key not configured",
+        },
+      },
+      cache: {
+        news_cached: !!(await storage.getCachedNews()),
+        events_cached: !!(await storage.getCachedEvents()),
+      },
+    };
+
+    // Test NewsData.io
+    try {
+      if (process.env.NEWSDATA_API_KEY) {
+        const axios = require("axios");
+        const response = await axios.get("https://newsdata.io/api/1/news", {
+          params: {
+            apikey: process.env.NEWSDATA_API_KEY,
+            country: "br",
+            language: "pt",
+            q: "brasil",
+          },
+          timeout: 5000,
+        });
+        
+        if (response.status === 200 && response.data?.results) {
+          diagnostics.apis.newsdata.status = "active";
+          diagnostics.apis.newsdata.message = `API working - ${response.data.results.length} results`;
+        }
+      } else {
+        diagnostics.apis.newsdata.status = "not_configured";
+        diagnostics.apis.newsdata.message = "API key not configured - using mock data";
+      }
+    } catch (error: any) {
+      diagnostics.apis.newsdata.status = "error";
+      if (error.response?.status === 401) {
+        diagnostics.apis.newsdata.message = "API key invalid or expired (401 Unauthorized)";
+      } else {
+        diagnostics.apis.newsdata.message = `Error: ${error.message}`;
+      }
+    }
+
+    // Test TheSportsDB
+    try {
+      const axios = require("axios");
+      const response = await axios.get("https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=Flamengo", {
+        timeout: 5000,
+      });
+      
+      if (response.status === 200 && response.data?.teams) {
+        diagnostics.apis.thesportsdb.status = "active";
+        diagnostics.apis.thesportsdb.message = "API working - free tier active";
+      }
+    } catch (error: any) {
+      diagnostics.apis.thesportsdb.status = "error";
+      diagnostics.apis.thesportsdb.message = `Error: ${error.message}`;
+    }
+
+    res.json(diagnostics);
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
