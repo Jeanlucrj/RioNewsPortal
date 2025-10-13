@@ -34,14 +34,35 @@ export class NewsService {
 
       const response = await axios.get(NEWSDATA_BASE_URL, { params });
 
-      if (response.data && response.data.results && response.data.results.length > 0) {
-        return response.data.results.map((item: any) => this.mapToNewsArticle(item, category));
+      // API successful - return results even if empty
+      if (response.data && response.data.results) {
+        // Filter out malformed articles (missing title or link) before mapping
+        const validResults = response.data.results.filter((item: any) => 
+          item.title && (item.link || item.article_id)
+        );
+        
+        const articles = validResults.map((item: any) => this.mapToNewsArticle(item, category));
+        
+        // If API returned empty, return empty array (real-time data, just no results)
+        // Only use mocks when API fails, not when it succeeds with no results
+        if (articles.length === 0) {
+          console.log(`API working but returned 0 valid results for category ${category}`);
+        }
+        
+        return articles;
       }
 
-      console.log(`No results from API for category ${category}, using mock data`);
+      // API response malformed
+      console.log(`Invalid API response for category ${category}, using mock data`);
       return this.getMockNews(category);
-    } catch (error) {
-      console.error("Error fetching news from NewsData.io:", error);
+    } catch (error: any) {
+      // Only use mocks on real errors (network, auth, etc)
+      const status = error.response?.status;
+      if (status === 401) {
+        console.error("NewsData.io API key invalid or expired (401), using mock data");
+      } else {
+        console.error("Error fetching news from NewsData.io:", error.message || error);
+      }
       return this.getMockNews(category);
     }
   }

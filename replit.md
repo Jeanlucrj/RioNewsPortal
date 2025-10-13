@@ -77,8 +77,8 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 ### APIs e Variáveis de Ambiente
 - `DATABASE_URL`: URL do PostgreSQL (auto-configurado)
 - `SESSION_SECRET`: Secret para sessions (auto-gerado)
-- `NEWSDATA_API_KEY`: Chave da API NewsData.io ✅
-- `THESPORTSDB_API_KEY`: Chave da API TheSportsDB (default: "3") ✅
+- `NEWSDATA_API_KEY`: Chave da API NewsData.io ✅ **ATIVA - Notícias em tempo real**
+- `THESPORTSDB_API_KEY`: Chave da API TheSportsDB (default: "3") ✅ **ATIVA**
 - `SYMPLA_API_KEY`: Token s_token do Sympla (OPCIONAL)
 - `EVENTBRITE_API_KEY`: OAuth token do Eventbrite (OPCIONAL)
 
@@ -95,6 +95,7 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - `GET /api/sports/matches` - Últimos jogos dos times cariocas
 - `GET /api/sports/team/:teamName` - Informações de um time
 - `POST /api/cache/clear` - Limpar cache manualmente
+- `GET /api/health` - Diagnóstico e status de todas as APIs ✨
 
 ### Frontend Routes
 - `/` - Homepage

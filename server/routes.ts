@@ -177,6 +177,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API Health Check and Diagnostics
   app.get("/api/health", async (req, res) => {
+    // Check cache status WITHOUT triggering cache population
+    const cacheStatus = {
+      news_cached: !!(await storage.getCachedNews()),
+      events_cached: !!(await storage.getCachedEvents()),
+    };
+    
     const diagnostics: any = {
       timestamp: new Date().toISOString(),
       apis: {
@@ -205,16 +211,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: process.env.EVENTBRITE_API_KEY ? "API key configured" : "API key not configured",
         },
       },
-      cache: {
-        news_cached: !!(await storage.getCachedNews()),
-        events_cached: !!(await storage.getCachedEvents()),
-      },
+      cache: cacheStatus,
     };
 
     // Test NewsData.io
     try {
       if (process.env.NEWSDATA_API_KEY) {
-        const axios = require("axios");
+        const axios = (await import("axios")).default;
         const response = await axios.get("https://newsdata.io/api/1/news", {
           params: {
             apikey: process.env.NEWSDATA_API_KEY,
@@ -244,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Test TheSportsDB
     try {
-      const axios = require("axios");
+      const axios = (await import("axios")).default;
       const response = await axios.get("https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=Flamengo", {
         timeout: 5000,
       });
