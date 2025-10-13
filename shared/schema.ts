@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,6 +16,88 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export const newsArticles = pgTable("news_articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  content: text("content"),
+  imageUrl: text("image_url"),
+  category: text("category").notNull(),
+  source: text("source").notNull(),
+  publishedAt: timestamp("published_at").notNull().defaultNow(),
+  url: text("url").notNull().default(''),
+  author: text("author"),
+  isManual: boolean("is_manual").notNull().default(false),
+  isDraft: boolean("is_draft").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertNewsArticle = z.infer<typeof insertNewsArticleSchema>;
+export type NewsArticleDB = typeof newsArticles.$inferSelect;
+
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  imageUrl: text("image_url"),
+  category: text("category").notNull(),
+  date: timestamp("date").notNull(),
+  time: text("time"),
+  venue: text("venue"),
+  ticketUrl: text("ticket_url"),
+  price: text("price"),
+  source: text("source").notNull().default('manual'),
+  isManual: boolean("is_manual").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type EventDB = typeof events.$inferSelect;
+
+export const comments = pgTable("comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  articleId: varchar("article_id").notNull(),
+  authorName: text("author_name").notNull(),
+  authorEmail: text("author_email").notNull(),
+  content: text("content").notNull(),
+  isApproved: boolean("is_approved").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCommentSchema = createInsertSchema(comments).omit({
+  id: true,
+  createdAt: true,
+  isApproved: true,
+});
+
+export type InsertComment = z.infer<typeof insertCommentSchema>;
+export type Comment = typeof comments.$inferSelect;
+
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  subscribedAt: timestamp("subscribed_at").notNull().defaultNow(),
+});
+
+export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({
+  id: true,
+  subscribedAt: true,
+});
+
+export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 
 export type NewsCategory = 'cultura' | 'esportes' | 'shows' | 'vida-noturna' | 'geral';
 
