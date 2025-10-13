@@ -81,6 +81,11 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        // Category colors for Rio portal
+        cultura: "hsl(var(--cultura) / <alpha-value>)",
+        esportes: "hsl(var(--esportes) / <alpha-value>)",
+        shows: "hsl(var(--shows) / <alpha-value>)",
+        "vida-noturna": "hsl(var(--vida-noturna) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
