@@ -150,6 +150,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear cache endpoint (for manual refresh)
+  app.post("/api/cache/clear", async (req, res) => {
+    try {
+      await storage.clearCache();
+      res.json({ message: "Cache cleared successfully" });
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

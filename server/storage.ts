@@ -10,6 +10,7 @@ export interface IStorage {
   setCachedNews(news: NewsArticle[]): Promise<void>;
   getCachedEvents(): Promise<Event[] | null>;
   setCachedEvents(events: Event[]): Promise<void>;
+  clearCache(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -18,7 +19,7 @@ export class MemStorage implements IStorage {
   private eventsCache: Event[] | null = null;
   private newsCacheTime: number = 0;
   private eventsCacheTime: number = 0;
-  private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+  private readonly CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
 
   constructor() {
     this.users = new Map();
@@ -65,6 +66,13 @@ export class MemStorage implements IStorage {
   async setCachedEvents(events: Event[]): Promise<void> {
     this.eventsCache = events;
     this.eventsCacheTime = Date.now();
+  }
+
+  async clearCache(): Promise<void> {
+    this.newsCache = null;
+    this.eventsCache = null;
+    this.newsCacheTime = 0;
+    this.eventsCacheTime = 0;
   }
 }
 
