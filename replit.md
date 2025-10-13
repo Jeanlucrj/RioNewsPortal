@@ -49,11 +49,21 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 ### Backend
 - **Runtime**: Node.js + Express
 - **Language**: TypeScript
-- **Storage**: In-memory cache (10 minutos)
+- **Database**: PostgreSQL com Drizzle ORM
+- **Cache**: In-memory cache (2 minutos)
 - **APIs Integradas**:
   - NewsData.io (notícias gerais do Brasil/Rio)
   - TheSportsDB (dados esportivos)
-  - Mock data para eventos
+  - Sympla API (eventos brasileiros) - OPCIONAL
+  - Eventbrite API (eventos internacionais) - OPCIONAL
+  - Mock data para eventos (fallback)
+
+### Database Schema
+- **users**: Usuários da equipe editorial
+- **news_articles**: Notícias (API + manuais)
+- **events**: Eventos (APIs externas + manuais)
+- **comments**: Comentários dos leitores
+- **newsletter_subscribers**: Inscritos na newsletter
 
 ### Design System
 - **Cores Principais**:
@@ -65,20 +75,26 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
   - Vida Noturna (Blue): 250 70% 50%
 
 ### APIs e Variáveis de Ambiente
-- `NEWSDATA_API_KEY`: Chave da API NewsData.io
-- `THESPORTSDB_API_KEY`: Chave da API TheSportsDB (default: "3")
+- `DATABASE_URL`: URL do PostgreSQL (auto-configurado)
+- `SESSION_SECRET`: Secret para sessions (auto-gerado)
+- `NEWSDATA_API_KEY`: Chave da API NewsData.io ✅
+- `THESPORTSDB_API_KEY`: Chave da API TheSportsDB (default: "3") ✅
+- `SYMPLA_API_KEY`: Token s_token do Sympla (OPCIONAL)
+- `EVENTBRITE_API_KEY`: OAuth token do Eventbrite (OPCIONAL)
 
 ## Estrutura de Rotas
 
 ### API Endpoints
-- `GET /api/news` - Todas as notícias (com cache)
+- `GET /api/news` - Todas as notícias (com cache de 2min)
 - `GET /api/news/category/:category` - Notícias por categoria
 - `GET /api/news/search?q=termo` - Busca de notícias
 - `GET /api/news/:id` - Artigo específico
 - `GET /api/events` - Todos os eventos
 - `GET /api/events/category/:category` - Eventos por categoria
+- `POST /api/events/sync` - Sincronizar eventos Sympla+Eventbrite
 - `GET /api/sports/matches` - Últimos jogos dos times cariocas
 - `GET /api/sports/team/:teamName` - Informações de um time
+- `POST /api/cache/clear` - Limpar cache manualmente
 
 ### Frontend Routes
 - `/` - Homepage
@@ -88,9 +104,38 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 
 ## Cache Strategy
 - Cache em memória para notícias e eventos
-- Duração: 10 minutos
+- Duração: 2 minutos (otimizado para produção)
 - Reduz chamadas às APIs externas
 - Melhora performance e respeita rate limits
+- Endpoint manual: `POST /api/cache/clear`
+
+## Integrações de Eventos
+
+### Sympla (Brasil) ✅ PRODUCTION-READY
+- **Status**: Implementado e funcionando com persistência
+- **Token**: Disponível em Minha Conta → Integrações no Sympla
+- **Limitação**: Retorna apenas eventos do organizador autenticado
+- **Uso**: Ideal se você é organizador ou tem parceria com organizadores
+- **Persistência**: Eventos são salvos no PostgreSQL via UPSERT
+
+### Eventbrite (Internacional) ✅ PRODUCTION-READY
+- **Status**: Implementado e funcionando com persistência
+- **Token**: OAuth token do painel de desenvolvedor
+- **Limitação**: Retorna apenas eventos do usuário autenticado
+- **Uso**: Ideal se você organiza eventos ou tem parceiros
+- **Persistência**: Eventos são salvos no PostgreSQL via UPSERT
+
+### Sincronização e Persistência
+- **Endpoint**: `POST /api/events/sync`
+- **Retorna**: `{sympla: number, eventbrite: number, total: number, saved: number}`
+- **Frequência**: Sob demanda (recomenda-se agendar com cron job)
+- **Comportamento**:
+  - Busca eventos das APIs Sympla e Eventbrite
+  - Persiste no database usando UPSERT (atualiza se existe, insere se novo)
+  - Limpa cache de eventos automaticamente
+  - Próximas chamadas GET retornam dados frescos do database
+- **Fallback**: Usa eventos mock apenas quando database está vazio
+- **Database-first**: GET /api/events retorna APENAS dados do database quando existem (zero mocks misturados)
 
 ## Características do Design
 - **Mobile First**: Design totalmente responsivo
@@ -100,15 +145,30 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **UX**: Loading states, empty states, error handling
 - **Visual**: Uso de gradientes, imagens hero, badges coloridos por categoria
 
-## Próximas Melhorias (Futuras)
-- Integração com Sympla/Eventbrite para eventos reais
+## Funcionalidades em Desenvolvimento
+
+### ✅ Concluído
+- Database PostgreSQL setup com Drizzle ORM
+- Integrações Sympla + Eventbrite com persistência completa
+  - API clients para ambos os serviços
+  - Endpoint de sincronização POST /api/events/sync
+  - UPSERT no database (insert/update automático)
+  - Cache invalidation após sync
+  - Database-first fetch (mocks apenas como fallback)
+
+### 🚧 Em Progresso
+- Sistema de autenticação para equipe editorial
+- CMS para gerenciar notícias e eventos
 - Sistema de comentários
 - Newsletter
+- Notificações push
+
+### 📋 Planejado
+- Integração com Mapa da Cultura API (Ministério da Cultura)
 - PWA (Progressive Web App)
 - Paginação de notícias
 - Filtros avançados
 - Personalização de feed
-- Notificações push
 
 ## Tecnologias
 - React 18

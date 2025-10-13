@@ -161,6 +161,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync external events (Sympla + Eventbrite)
+  app.post("/api/events/sync", async (req, res) => {
+    try {
+      const result = await eventsService.syncExternalEvents();
+      res.json({
+        message: "Events synced successfully",
+        ...result,
+      });
+    } catch (error) {
+      console.error("Error syncing external events:", error);
+      res.status(500).json({ error: "Failed to sync events" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

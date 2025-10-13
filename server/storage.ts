@@ -1,5 +1,8 @@
-import { type User, type InsertUser, type NewsArticle, type Event, type NewsCategory } from "@shared/schema";
+import { type User, type InsertUser, type NewsArticle, type Event, type NewsCategory, type EventDB, type InsertEvent } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "../db/index.js";
+import { events as eventsTable } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -11,6 +14,10 @@ export interface IStorage {
   getCachedEvents(): Promise<Event[] | null>;
   setCachedEvents(events: Event[]): Promise<void>;
   clearCache(): Promise<void>;
+  clearEventsCache(): Promise<void>;
+  
+  saveEvents(events: Event[]): Promise<number>;
+  getEvents(category?: NewsCategory): Promise<Event[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -73,6 +80,83 @@ export class MemStorage implements IStorage {
     this.eventsCache = null;
     this.newsCacheTime = 0;
     this.eventsCacheTime = 0;
+  }
+
+  async clearEventsCache(): Promise<void> {
+    this.eventsCache = null;
+    this.eventsCacheTime = 0;
+  }
+
+  async saveEvents(events: Event[]): Promise<number> {
+    let savedCount = 0;
+    
+    // Upsert events to database (update if exists, insert if not)
+    for (const event of events) {
+      const eventData = {
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        imageUrl: event.imageUrl,
+        category: event.category,
+        date: new Date(event.date),
+        time: event.time,
+        venue: event.venue,
+        ticketUrl: event.ticketUrl,
+        price: event.price,
+        source: event.id.startsWith('sympla-') ? 'sympla' : 
+                event.id.startsWith('eventbrite-') ? 'eventbrite' : 'manual',
+        isManual: false,
+      };
+
+      try {
+        // Use upsert to insert or update
+        await db.insert(eventsTable)
+          .values(eventData)
+          .onConflictDoUpdate({
+            target: eventsTable.id,
+            set: {
+              title: eventData.title,
+              description: eventData.description,
+              imageUrl: eventData.imageUrl,
+              category: eventData.category,
+              date: eventData.date,
+              time: eventData.time,
+              venue: eventData.venue,
+              ticketUrl: eventData.ticketUrl,
+              price: eventData.price,
+              source: eventData.source,
+            },
+          });
+        savedCount++;
+      } catch (error) {
+        console.error(`Error saving event ${event.id}:`, error);
+      }
+    }
+    
+    return savedCount;
+  }
+
+  async getEvents(category?: NewsCategory): Promise<Event[]> {
+    const allEvents = await db.select().from(eventsTable);
+    
+    const mappedEvents: Event[] = allEvents.map((event: EventDB) => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      imageUrl: event.imageUrl || undefined,
+      category: event.category as NewsCategory,
+      date: event.date.toISOString(),
+      time: event.time || undefined,
+      venue: event.venue || undefined,
+      ticketUrl: event.ticketUrl || undefined,
+      price: event.price || undefined,
+    }));
+
+    if (category && category !== 'geral') {
+      return mappedEvents.filter(e => e.category === category);
+    }
+
+    return mappedEvents;
   }
 }
 

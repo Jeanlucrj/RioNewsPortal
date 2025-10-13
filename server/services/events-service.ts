@@ -1,9 +1,54 @@
 import type { Event, NewsCategory } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { SymplaService } from "./sympla-service";
+import { EventbriteService } from "./eventbrite-service";
+import { storage } from "../storage";
+
+const symplaService = new SymplaService();
+const eventbriteService = new EventbriteService();
 
 export class EventsService {
   async fetchEvents(category?: NewsCategory): Promise<Event[]> {
+    // Try to get events from database first
+    const dbEvents = await storage.getEvents(category);
+    
+    // If database has events, return ONLY database events (no mocks)
+    if (dbEvents.length > 0) {
+      return dbEvents;
+    }
+    
+    // Only fallback to mock events when database is completely empty
     return this.getMockEvents(category);
+  }
+
+  async syncExternalEvents(): Promise<{ sympla: number; eventbrite: number; total: number; saved: number }> {
+    console.log("Starting external events sync...");
+    
+    const [symplaEvents, eventbriteEvents] = await Promise.all([
+      symplaService.fetchEvents(),
+      eventbriteService.fetchEvents(),
+    ]);
+
+    const allEvents = [...symplaEvents, ...eventbriteEvents];
+    
+    // Save to database and get count of saved events
+    let savedCount = 0;
+    if (allEvents.length > 0) {
+      savedCount = await storage.saveEvents(allEvents);
+      console.log(`Saved/updated ${savedCount} out of ${allEvents.length} events to database`);
+      
+      // Clear events cache so next GET request fetches fresh data
+      await storage.clearEventsCache();
+    }
+    
+    console.log(`Synced ${symplaEvents.length} Sympla + ${eventbriteEvents.length} Eventbrite = ${allEvents.length} total events`);
+    
+    return {
+      sympla: symplaEvents.length,
+      eventbrite: eventbriteEvents.length,
+      total: allEvents.length,
+      saved: savedCount,
+    };
   }
 
   private getMockEvents(category?: NewsCategory): Event[] {
