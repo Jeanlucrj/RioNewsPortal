@@ -122,6 +122,18 @@ export default function Article() {
             {article.author && (
               <span data-testid="text-article-author">Por {article.author}</span>
             )}
+            {article.url && (
+              <a
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-primary hover:underline"
+                data-testid="link-article-source"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Ver fonte original
+              </a>
+            )}
           </div>
 
           {article.imageUrl && (

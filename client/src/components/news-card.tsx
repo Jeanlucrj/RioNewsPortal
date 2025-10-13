@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Calendar, ExternalLink } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { NewsArticle } from "@shared/schema";
@@ -91,21 +91,6 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
       </div>
     </Card>
   );
-
-  if (article.url && article.url.startsWith("http")) {
-    return (
-      <a
-        href={article.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block"
-        onClick={onClick}
-        data-testid={`link-article-${article.id}`}
-      >
-        {content}
-      </a>
-    );
-  }
 
   return (
     <Link href={`/noticia/${article.id}`} onClick={onClick} data-testid={`link-article-${article.id}`}>
