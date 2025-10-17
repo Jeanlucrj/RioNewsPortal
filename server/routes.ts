@@ -1,18 +1,88 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import passport from "./passport-config";
+import { authService } from "./services/auth-service";
 import { storage } from "./storage";
 import { NewsService } from "./services/news-service";
 import { SportsService } from "./services/sports-service";
 import { EventsService } from "./services/events-service";
 import { RSSService } from "./services/rss-service";
-import type { NewsCategory } from "@shared/schema";
+import { registerUserSchema, loginUserSchema, type NewsCategory } from "@shared/schema";
 
 const newsService = new NewsService();
 const sportsService = new SportsService();
 const eventsService = new EventsService();
 const rssService = new RSSService();
 
+// Auth middleware
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: "Unauthorized" });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ========== AUTH ROUTES ==========
+  
+  // Register new user (DISABLED - Only admins can create accounts via CMS)
+  // For initial setup, create first user directly in database or via admin script
+  app.post("/api/auth/register", async (req, res) => {
+    res.status(403).json({ 
+      error: "Public registration is disabled. Contact administrator to create an account." 
+    });
+  });
+
+  // Login
+  app.post("/api/auth/login", (req, res, next) => {
+    try {
+      const credentials = loginUserSchema.parse(req.body);
+      
+      passport.authenticate("local", (err: any, user: any, info: any) => {
+        if (err) {
+          return res.status(500).json({ error: "Authentication error" });
+        }
+        
+        if (!user) {
+          return res.status(401).json({ error: info?.message || "Invalid credentials" });
+        }
+        
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            return res.status(500).json({ error: "Login failed" });
+          }
+          res.json(user);
+        });
+      })(req, res, next);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Validation error", details: error.errors });
+      }
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Logout
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  // Get current user
+  app.get("/api/auth/me", (req, res) => {
+    if (req.isAuthenticated()) {
+      res.json(req.user);
+    } else {
+      res.status(401).json({ error: "Not authenticated" });
+    }
+  });
+
+  // ========== NEWS ROUTES ==========
+
   // Get all news (with caching)
   app.get("/api/news", async (req, res) => {
     try {

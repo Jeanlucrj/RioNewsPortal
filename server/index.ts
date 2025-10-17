@@ -1,10 +1,35 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import passport from "./passport-config";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configure sessions
+if (!process.env.SESSION_SECRET) {
+  console.warn("⚠️  SESSION_SECRET not set! Using default (INSECURE for production)");
+}
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "rio-noticias-secret-key-change-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    },
+  })
+);
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -88,22 +88,39 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 ## Estrutura de Rotas
 
 ### API Endpoints
+
+**Autenticação** 🔐
+- `POST /api/auth/register` - Registrar novo editor
+- `POST /api/auth/login` - Login de editor
+- `POST /api/auth/logout` - Logout
+- `GET /api/auth/me` - Dados do usuário autenticado
+
+**Notícias**
 - `GET /api/news` - Todas as notícias (com cache de 2min)
 - `GET /api/news/category/:category` - Notícias por categoria
 - `GET /api/news/search?q=termo` - Busca de notícias
 - `GET /api/news/:id` - Artigo específico
-- `GET /api/news/rss` - Notícias dos feeds RSS (G1 + O Globo) ✨
+- `GET /api/news/rss` - Notícias dos feeds RSS (6 portais) ✨
 - `POST /api/news/sync-rss` - Sincronizar feeds RSS manualmente ✨
+
+**Eventos**
 - `GET /api/events` - Todos os eventos
 - `GET /api/events/category/:category` - Eventos por categoria
 - `POST /api/events/sync` - Sincronizar eventos Sympla+Eventbrite
+
+**Esportes**
 - `GET /api/sports/matches` - Últimos jogos dos times cariocas
 - `GET /api/sports/team/:teamName` - Informações de um time
+
+**Sistema**
 - `POST /api/cache/clear` - Limpar cache manualmente
 - `GET /api/health` - Diagnóstico e status de todas as APIs
 
 ### Frontend Routes
 - `/` - Homepage
+- `/login` - Login de editores 🔐
+- `/register` - Registro de editores 🔐
+- `/admin` - Painel administrativo (protegido) 🔐
 - `/categoria/:category` - Página de categoria
 - `/noticia/:id` - Página de artigo individual
 - `*` - 404 Not Found
@@ -190,9 +207,17 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
   - Detecção inteligente de categorias
   - Integração server-side completa
   - 40+ notícias em tempo real
+- **Sistema de Autenticação Completo** 🔐
+  - Passport.js + express-session
+  - Login com bcryptjs (hash seguro de senhas)
+  - Proteção de rotas com middleware requireAuth
+  - Páginas de login/registro no frontend
+  - Sessões persistentes (7 dias) com HTTP-only cookies
+  - Registro público desabilitado (apenas admins criam contas)
+  - Script de criação de admin inicial
+  - SameSite cookie protection contra CSRF
 
 ### 🚧 Em Progresso
-- Sistema de autenticação para equipe editorial
 - CMS para gerenciar notícias e eventos
 - Sistema de comentários
 - Newsletter
