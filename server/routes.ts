@@ -188,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sync RSS Feeds (G1 Rio + O Globo)
+  // Sync RSS Feeds (6 portals: G1, O Globo, O Dia, Extra, Diário do Rio, Veja Rio)
   app.post("/api/news/sync-rss", async (req, res) => {
     try {
       const result = await rssService.syncRSSFeeds();
@@ -242,10 +242,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: process.env.EVENTBRITE_API_KEY ? "API key configured" : "API key not configured",
         },
         rss_feeds: {
-          name: "RSS Feeds (G1 Rio + O Globo)",
+          name: "RSS Feeds (6 portais do Rio)",
           configured: true,
           status: "active",
-          message: "RSS feeds available - G1 Rio de Janeiro, O Globo Rio",
+          message: "RSS feeds available - G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio",
         },
       },
       cache: cacheStatus,

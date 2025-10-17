@@ -54,7 +54,8 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **APIs Integradas**:
   - NewsData.io (notícias gerais do Brasil/Rio)
   - TheSportsDB (dados esportivos)
-  - **RSS Feeds (G1 Rio + O Globo) - Notícias locais categorizadas** ✨
+  - **RSS Feeds (6 portais) - Notícias locais categorizadas** ✨
+    - G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio
   - Sympla API (eventos brasileiros) - OPCIONAL
   - Eventbrite API (eventos internacionais) - OPCIONAL
   - Mock data para eventos (fallback)
@@ -82,7 +83,7 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - `THESPORTSDB_API_KEY`: Chave da API TheSportsDB (default: "3") ✅ **ATIVA**
 - `SYMPLA_API_KEY`: Token s_token do Sympla (OPCIONAL)
 - `EVENTBRITE_API_KEY`: OAuth token do Eventbrite (OPCIONAL)
-- **RSS Feeds**: G1 Rio + O Globo Rio ✅ **ATIVOS - Categorização automática**
+- **RSS Feeds**: 6 portais (G1, O Globo, O Dia, Extra, Diário do Rio, Veja Rio) ✅ **ATIVOS - 40+ notícias**
 
 ## Estrutura de Rotas
 
@@ -150,11 +151,15 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **UX**: Loading states, empty states, error handling
 - **Visual**: Uso de gradientes, imagens hero, badges coloridos por categoria
 
-## Integrações RSS (G1 Rio + O Globo)
+## Integrações RSS (6 Portais do Rio)
 
 ### ✅ Feeds Ativos
 - **G1 Rio de Janeiro**: Feed RSS completo da região
 - **O Globo Rio**: Notícias locais do Rio
+- **Jornal O Dia**: Cobertura de serviços, segurança pública e dia a dia
+- **Extra**: Notícias populares, serviços e comunidade (feed instável)
+- **Diário do Rio**: Foco em cultura, urbanismo e política local
+- **Veja Rio**: Cultura, gastronomia, lazer e eventos
 
 ### 🤖 Categorização Automática
 O sistema detecta automaticamente a categoria de cada notícia baseado em palavras-chave:
@@ -168,6 +173,7 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
 - **Automática**: Notícias atualizadas em tempo real
 - **Manual**: Use `POST /api/news/sync-rss` para forçar atualização
 - **Consulta**: Use `GET /api/news/rss` para ver apenas notícias RSS
+- **Volume**: 40+ artigos sincronizados de 5-6 fontes simultaneamente
 
 ## Funcionalidades em Desenvolvimento
 
@@ -179,10 +185,11 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
   - UPSERT no database (insert/update automático)
   - Cache invalidation após sync
   - Database-first fetch (mocks apenas como fallback)
-- **RSS Feeds (G1 Rio + O Globo) com categorização automática** ✨
+- **RSS Feeds (6 portais do Rio) com categorização automática** ✨
+  - 6 fontes: G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio
   - Detecção inteligente de categorias
   - Integração server-side completa
-  - 11+ notícias em tempo real
+  - 40+ notícias em tempo real
 
 ### 🚧 Em Progresso
 - Sistema de autenticação para equipe editorial

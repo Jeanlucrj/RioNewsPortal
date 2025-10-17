@@ -19,6 +19,26 @@ const RSS_FEEDS: RSSFeed[] = [
     url: "https://oglobo.globo.com/rio/rss.xml",
     category: "geral",
   },
+  {
+    name: "Jornal O Dia",
+    url: "https://odia.ig.com.br/_conteudo/rio-de-janeiro/rss.xml",
+    category: "geral",
+  },
+  {
+    name: "Extra",
+    url: "https://extra.globo.com/noticias/rio-de-janeiro/rss.xml",
+    category: "geral",
+  },
+  {
+    name: "Diário do Rio",
+    url: "https://diariodorio.com/feed/",
+    category: "geral",
+  },
+  {
+    name: "Veja Rio",
+    url: "https://vejario.abril.com.br/feed/",
+    category: "geral",
+  },
 ];
 
 const RSS2JSON_API = "https://api.rss2json.com/v1/api.json";
