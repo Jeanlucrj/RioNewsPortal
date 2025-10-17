@@ -54,6 +54,7 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **APIs Integradas**:
   - NewsData.io (notícias gerais do Brasil/Rio)
   - TheSportsDB (dados esportivos)
+  - **RSS Feeds (G1 Rio + O Globo) - Notícias locais categorizadas** ✨
   - Sympla API (eventos brasileiros) - OPCIONAL
   - Eventbrite API (eventos internacionais) - OPCIONAL
   - Mock data para eventos (fallback)
@@ -81,6 +82,7 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - `THESPORTSDB_API_KEY`: Chave da API TheSportsDB (default: "3") ✅ **ATIVA**
 - `SYMPLA_API_KEY`: Token s_token do Sympla (OPCIONAL)
 - `EVENTBRITE_API_KEY`: OAuth token do Eventbrite (OPCIONAL)
+- **RSS Feeds**: G1 Rio + O Globo Rio ✅ **ATIVOS - Categorização automática**
 
 ## Estrutura de Rotas
 
@@ -89,13 +91,15 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - `GET /api/news/category/:category` - Notícias por categoria
 - `GET /api/news/search?q=termo` - Busca de notícias
 - `GET /api/news/:id` - Artigo específico
+- `GET /api/news/rss` - Notícias dos feeds RSS (G1 + O Globo) ✨
+- `POST /api/news/sync-rss` - Sincronizar feeds RSS manualmente ✨
 - `GET /api/events` - Todos os eventos
 - `GET /api/events/category/:category` - Eventos por categoria
 - `POST /api/events/sync` - Sincronizar eventos Sympla+Eventbrite
 - `GET /api/sports/matches` - Últimos jogos dos times cariocas
 - `GET /api/sports/team/:teamName` - Informações de um time
 - `POST /api/cache/clear` - Limpar cache manualmente
-- `GET /api/health` - Diagnóstico e status de todas as APIs ✨
+- `GET /api/health` - Diagnóstico e status de todas as APIs
 
 ### Frontend Routes
 - `/` - Homepage
@@ -146,6 +150,25 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **UX**: Loading states, empty states, error handling
 - **Visual**: Uso de gradientes, imagens hero, badges coloridos por categoria
 
+## Integrações RSS (G1 Rio + O Globo)
+
+### ✅ Feeds Ativos
+- **G1 Rio de Janeiro**: Feed RSS completo da região
+- **O Globo Rio**: Notícias locais do Rio
+
+### 🤖 Categorização Automática
+O sistema detecta automaticamente a categoria de cada notícia baseado em palavras-chave:
+- **Cultura**: arte, museu, teatro, cinema, exposição
+- **Esportes**: futebol, flamengo, vasco, botafogo, fluminense
+- **Shows**: música, festival, concerto, banda
+- **Vida Noturna**: bar, balada, festa, gastronomia
+- **Geral**: demais notícias
+
+### 🔄 Sincronização
+- **Automática**: Notícias atualizadas em tempo real
+- **Manual**: Use `POST /api/news/sync-rss` para forçar atualização
+- **Consulta**: Use `GET /api/news/rss` para ver apenas notícias RSS
+
 ## Funcionalidades em Desenvolvimento
 
 ### ✅ Concluído
@@ -156,6 +179,10 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
   - UPSERT no database (insert/update automático)
   - Cache invalidation após sync
   - Database-first fetch (mocks apenas como fallback)
+- **RSS Feeds (G1 Rio + O Globo) com categorização automática** ✨
+  - Detecção inteligente de categorias
+  - Integração server-side completa
+  - 11+ notícias em tempo real
 
 ### 🚧 Em Progresso
 - Sistema de autenticação para equipe editorial

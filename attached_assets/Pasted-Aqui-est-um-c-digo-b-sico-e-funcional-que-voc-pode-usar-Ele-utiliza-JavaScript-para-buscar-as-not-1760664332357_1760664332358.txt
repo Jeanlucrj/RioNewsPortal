@@ -1,0 +1,112 @@
+Aqui está um código básico e funcional que você pode usar. Ele utiliza JavaScript para buscar as notícias de um feed RSS e exibi-las em sua página. É uma solução "client-side", ou seja, roda diretamente no navegador do seu usuário e não sobrecarrega seu servidor.
+
+O que você vai precisar:
+
+Um local no seu HTML onde as notícias vão aparecer.
+
+O código JavaScript abaixo, que pode ser inserido no final do seu arquivo HTML.
+
+Passo 1: Adicione este código HTML onde você quer que as notícias apareçam.
+HTML
+
+<div class="noticias-container">
+    <h2>Últimas Notícias do Rio</h2>
+    <div id="feed-g1-rio">
+        <p>Carregando notícias...</p>
+    </div>
+</div>
+
+<style>
+    /* Estilo básico para a lista de notícias */
+    .noticias-container {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    .noticia-item {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    .noticia-item:last-child {
+        border-bottom: none;
+    }
+    .noticia-item a {
+        text-decoration: none;
+        color: #0056b3;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+    .noticia-item a:hover {
+        text-decoration: underline;
+    }
+    .noticia-item p {
+        font-size: 0.9em;
+        color: #555;
+        margin-top: 5px;
+    }
+    .fonte-noticia {
+        font-size: 0.8em;
+        color: #777;
+        display: block;
+        margin-top: 4px;
+    }
+</style>
+Passo 2: Adicione este código JavaScript antes de fechar a tag </body> no seu HTML.
+Este script usa um serviço gratuito (api.rss2json.com) para converter o RSS (que é em formato XML) para JSON, que é muito mais fácil de trabalhar em JavaScript.
+
+HTML
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // URL do feed RSS do G1 Rio de Janeiro
+    const rssUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent("https://g1.globo.com/rss/g1/rio-de-janeiro/");
+    
+    // Onde as notícias serão exibidas
+    const feedContainer = document.getElementById("feed-g1-rio");
+
+    fetch(rssUrl)
+        .then(response => response.json())
+        .then(data => {
+            // Limpa a mensagem "Carregando..."
+            feedContainer.innerHTML = "";
+            
+            // Pega os 5 primeiros itens do feed
+            const items = data.items.slice(0, 5);
+            
+            items.forEach(item => {
+                // Cria os elementos HTML para cada notícia
+                const noticiaDiv = document.createElement("div");
+                noticiaDiv.classList.add("noticia-item");
+                
+                // Extrai o resumo da notícia (description) e remove tags HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(item.description, 'text/html');
+                const resumo = doc.body.textContent || "";
+
+                // Monta o HTML da notícia
+                noticiaDiv.innerHTML = `
+                    <a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a>
+                    <p>${resumo.substring(0, 150)}...</p>
+                    <small class="fonte-noticia">Fonte: G1 Rio de Janeiro</small>
+                `;
+                
+                feedContainer.appendChild(noticiaDiv);
+            });
+        })
+        .catch(error => {
+            feedContainer.innerHTML = "<p>Não foi possível carregar as notícias. Tente novamente mais tarde.</p>";
+            console.error("Erro ao buscar o feed RSS:", error);
+        });
+});
+</script>
+Como Usar e Expandir
+Copie e cole: Basta copiar o bloco HTML e o bloco JavaScript para o seu site.
+
+Trocar a fonte: Para exibir notícias de O Globo, por exemplo, simplesmente troque a URL na linha const rssUrl = ... pela URL do feed de O Globo, assim: const rssUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent("https://oglobo.globo.com/rio/rss.xml"); Não se esqueça de atualizar também o texto da fonte (Fonte: O Globo).
+
+Múltiplos Feeds: Você pode criar várias seções no seu site (uma para o G1, uma para O Dia, etc.), replicando o código e alterando o id do container (feed-o-dia, por exemplo) e a URL do RSS para cada um.

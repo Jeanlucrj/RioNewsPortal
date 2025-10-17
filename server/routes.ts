@@ -4,11 +4,13 @@ import { storage } from "./storage";
 import { NewsService } from "./services/news-service";
 import { SportsService } from "./services/sports-service";
 import { EventsService } from "./services/events-service";
+import { RSSService } from "./services/rss-service";
 import type { NewsCategory } from "@shared/schema";
 
 const newsService = new NewsService();
 const sportsService = new SportsService();
 const eventsService = new EventsService();
+const rssService = new RSSService();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all news (with caching)
@@ -66,6 +68,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error searching news:", error);
       res.status(500).json({ error: "Failed to search news" });
+    }
+  });
+
+  // Get RSS articles (separate from NewsData.io) - MUST be before /:id route
+  app.get("/api/news/rss", async (req, res) => {
+    try {
+      const articles = await rssService.fetchAllRSSFeeds();
+      res.json(articles);
+    } catch (error) {
+      console.error("Error fetching RSS articles:", error);
+      res.status(500).json({ error: "Failed to fetch RSS articles" });
     }
   });
 
@@ -175,6 +188,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync RSS Feeds (G1 Rio + O Globo)
+  app.post("/api/news/sync-rss", async (req, res) => {
+    try {
+      const result = await rssService.syncRSSFeeds();
+      
+      // Clear news cache to fetch fresh RSS data
+      await storage.clearCache();
+      
+      res.json({
+        message: "RSS feeds synced successfully",
+        ...result,
+      });
+    } catch (error) {
+      console.error("Error syncing RSS feeds:", error);
+      res.status(500).json({ error: "Failed to sync RSS feeds" });
+    }
+  });
+
   // API Health Check and Diagnostics
   app.get("/api/health", async (req, res) => {
     // Check cache status WITHOUT triggering cache population
@@ -209,6 +240,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           configured: !!process.env.EVENTBRITE_API_KEY,
           status: process.env.EVENTBRITE_API_KEY ? "configured" : "not_configured",
           message: process.env.EVENTBRITE_API_KEY ? "API key configured" : "API key not configured",
+        },
+        rss_feeds: {
+          name: "RSS Feeds (G1 Rio + O Globo)",
+          configured: true,
+          status: "active",
+          message: "RSS feeds available - G1 Rio de Janeiro, O Globo Rio",
         },
       },
       cache: cacheStatus,
