@@ -96,12 +96,15 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - `GET /api/auth/me` - Dados do usuário autenticado
 
 **Notícias**
-- `GET /api/news` - Todas as notícias (com cache de 2min)
-- `GET /api/news/category/:category` - Notícias por categoria
+- `GET /api/news` - Todas as notícias do database (RSS persistidas)
+- `GET /api/news/category/:category` - Notícias por categoria do database
 - `GET /api/news/search?q=termo` - Busca de notícias
 - `GET /api/news/:id` - Artigo específico
-- `GET /api/news/rss` - Notícias dos feeds RSS (6 portais) ✨
-- `POST /api/news/sync-rss` - Sincronizar feeds RSS manualmente ✨
+- `GET /api/news/rss` - Buscar feeds RSS em tempo real (sem persistir)
+- `POST /api/news/sync-rss` - Sincronizar feeds RSS no database ✨
+  - Retorna: `{total, saved, message}`
+  - Auto-executa ao iniciar servidor
+  - UPSERT: atualiza se existe, insere se novo
 
 **Eventos**
 - `GET /api/events` - Todos os eventos
@@ -202,11 +205,15 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
   - UPSERT no database (insert/update automático)
   - Cache invalidation após sync
   - Database-first fetch (mocks apenas como fallback)
-- **RSS Feeds (6 portais do Rio) com categorização automática** ✨
+- **RSS Feeds (6 portais do Rio) com categorização automática e persistência** ✨
   - 6 fontes: G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio
   - Detecção inteligente de categorias
   - Integração server-side completa
-  - 40+ notícias em tempo real
+  - **Persistência PostgreSQL com UPSERT**
+  - **Auto-sync ao iniciar servidor** (41+ artigos)
+  - **Database-first**: Todas as rotas buscam do database
+  - Endpoint manual: POST /api/news/sync-rss
+  - Páginas de categoria funcionando corretamente
 - **Sistema de Autenticação Completo** 🔐
   - Passport.js + express-session
   - Login com bcryptjs (hash seguro de senhas)

@@ -42,7 +42,7 @@ export default function Category() {
   const [filter, setFilter] = useState<"recentes" | "populares">("recentes");
 
   const { data: news, isLoading } = useQuery<NewsArticle[]>({
-    queryKey: ["/api", "news", "category", category],
+    queryKey: ["/api/news/category", category],
     enabled: !!category,
   });
 

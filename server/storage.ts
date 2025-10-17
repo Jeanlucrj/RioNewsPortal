@@ -1,8 +1,8 @@
 import { type User, type InsertUser, type NewsArticle, type Event, type NewsCategory, type EventDB, type InsertEvent } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "../db/index.js";
-import { events as eventsTable } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { events as eventsTable, newsArticles as newsArticlesTable } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -18,6 +18,9 @@ export interface IStorage {
   
   saveEvents(events: Event[]): Promise<number>;
   getEvents(category?: NewsCategory): Promise<Event[]>;
+  
+  saveNews(articles: NewsArticle[]): Promise<number>;
+  getNews(category?: NewsCategory): Promise<NewsArticle[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -157,6 +160,75 @@ export class MemStorage implements IStorage {
     }
 
     return mappedEvents;
+  }
+
+  async saveNews(articles: NewsArticle[]): Promise<number> {
+    let savedCount = 0;
+    
+    for (const article of articles) {
+      const newsData = {
+        id: article.id,
+        title: article.title,
+        description: article.description,
+        content: article.content || null,
+        imageUrl: article.imageUrl,
+        category: article.category,
+        source: article.source,
+        publishedAt: new Date(article.publishedAt),
+        url: article.url,
+        author: article.author || null,
+        isManual: false,
+        isDraft: false,
+      };
+
+      try {
+        await db.insert(newsArticlesTable)
+          .values(newsData)
+          .onConflictDoUpdate({
+            target: newsArticlesTable.id,
+            set: {
+              title: newsData.title,
+              description: newsData.description,
+              content: newsData.content,
+              imageUrl: newsData.imageUrl,
+              category: newsData.category,
+              source: newsData.source,
+              publishedAt: newsData.publishedAt,
+              url: newsData.url,
+              author: newsData.author,
+            },
+          });
+        savedCount++;
+      } catch (error) {
+        console.error(`Error saving news article ${article.id}:`, error);
+      }
+    }
+    
+    return savedCount;
+  }
+
+  async getNews(category?: NewsCategory): Promise<NewsArticle[]> {
+    let query = db.select().from(newsArticlesTable).orderBy(desc(newsArticlesTable.publishedAt));
+    const allNews = await query;
+    
+    const mappedNews: NewsArticle[] = allNews.map((article: any) => ({
+      id: article.id,
+      title: article.title,
+      description: article.description,
+      content: article.content || undefined,
+      imageUrl: article.imageUrl || undefined,
+      category: article.category as NewsCategory,
+      source: article.source,
+      publishedAt: article.publishedAt.toISOString(),
+      url: article.url,
+      author: article.author || undefined,
+    }));
+
+    if (category) {
+      return mappedNews.filter(n => n.category === category);
+    }
+
+    return mappedNews;
   }
 }
 

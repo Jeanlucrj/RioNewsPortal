@@ -23,6 +23,18 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auto-sync RSS feeds on server start
+  (async () => {
+    try {
+      console.log("🔄 Auto-syncing RSS feeds to database...");
+      const articles = await rssService.fetchAllRSSFeeds();
+      const savedCount = await storage.saveNews(articles);
+      console.log(`✅ Synced ${savedCount} RSS articles to database`);
+    } catch (error) {
+      console.error("❌ Failed to auto-sync RSS feeds:", error);
+    }
+  })();
+
   // ========== AUTH ROUTES ==========
   
   // Register new user (DISABLED - Only admins can create accounts via CMS)
@@ -83,16 +95,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ========== NEWS ROUTES ==========
 
-  // Get all news (with caching)
+  // Sync RSS feeds to database
+  app.post("/api/news/sync-rss", async (req, res) => {
+    try {
+      const articles = await rssService.fetchAllRSSFeeds();
+      const savedCount = await storage.saveNews(articles);
+      
+      // Clear cache after sync
+      await storage.clearCache();
+      
+      res.json({
+        total: articles.length,
+        saved: savedCount,
+        message: `Synchronized ${savedCount} articles from RSS feeds`,
+      });
+    } catch (error) {
+      console.error("Error syncing RSS feeds:", error);
+      res.status(500).json({ error: "Failed to sync RSS feeds" });
+    }
+  });
+
+  // Get all news from database
   app.get("/api/news", async (req, res) => {
     try {
-      let news = await storage.getCachedNews();
-      
-      if (!news) {
-        news = await newsService.fetchNews();
-        await storage.setCachedNews(news);
-      }
-      
+      const news = await storage.getNews();
       res.json(news);
     } catch (error) {
       console.error("Error fetching news:", error);
@@ -100,11 +126,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get news by category
+  // Get news by category from database
   app.get("/api/news/category/:category", async (req, res) => {
     try {
       const category = req.params.category as NewsCategory;
-      const news = await newsService.fetchNews(category);
+      const news = await storage.getNews(category);
       res.json(news);
     } catch (error) {
       console.error("Error fetching news by category:", error);
@@ -112,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search news
+  // Search news from database
   app.get("/api/news/search", async (req, res) => {
     try {
       const query = req.query.q as string;
@@ -121,12 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      let news = await storage.getCachedNews();
-      
-      if (!news) {
-        news = await newsService.fetchNews();
-        await storage.setCachedNews(news);
-      }
+      const news = await storage.getNews();
 
       const searchTerm = query.toLowerCase();
       const results = news.filter(article => 
@@ -152,16 +173,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get specific news article by ID
+  // Get specific news article by ID from database
   app.get("/api/news/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      let news = await storage.getCachedNews();
-      
-      if (!news) {
-        news = await newsService.fetchNews();
-        await storage.setCachedNews(news);
-      }
+      const news = await storage.getNews();
 
       const article = news.find(a => a.id === id);
       
@@ -258,23 +274,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sync RSS Feeds (6 portals: G1, O Globo, O Dia, Extra, Diário do Rio, Veja Rio)
-  app.post("/api/news/sync-rss", async (req, res) => {
-    try {
-      const result = await rssService.syncRSSFeeds();
-      
-      // Clear news cache to fetch fresh RSS data
-      await storage.clearCache();
-      
-      res.json({
-        message: "RSS feeds synced successfully",
-        ...result,
-      });
-    } catch (error) {
-      console.error("Error syncing RSS feeds:", error);
-      res.status(500).json({ error: "Failed to sync RSS feeds" });
-    }
-  });
 
   // API Health Check and Diagnostics
   app.get("/api/health", async (req, res) => {
