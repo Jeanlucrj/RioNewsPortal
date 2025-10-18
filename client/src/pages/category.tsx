@@ -29,6 +29,11 @@ const categoryConfig: Record<NewsCategory, { label: string; color: string; gradi
     color: "bg-gastronomia",
     gradient: "from-orange-600 to-orange-400",
   },
+  internacional: {
+    label: "Internacional",
+    color: "bg-internacional",
+    gradient: "from-blue-600 to-blue-400",
+  },
   geral: {
     label: "Geral",
     color: "bg-primary",

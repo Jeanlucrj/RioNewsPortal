@@ -17,6 +17,7 @@ const categoryLabels: Record<string, string> = {
   esportes: "ESPORTES",
   shows: "SHOWS",
   gastronomia: "GASTRONOMIA",
+  internacional: "INTERNACIONAL",
   geral: "GERAL",
 };
 
@@ -25,6 +26,7 @@ const categoryColors: Record<string, string> = {
   esportes: "bg-green-500 hover:bg-green-600 text-white border-0",
   shows: "bg-pink-500 hover:bg-pink-600 text-white border-0",
   gastronomia: "bg-orange-500 hover:bg-orange-600 text-white border-0",
+  internacional: "bg-blue-500 hover:bg-blue-600 text-white border-0",
   geral: "bg-cyan-500 hover:bg-cyan-600 text-white border-0",
 };
 
