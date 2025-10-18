@@ -61,8 +61,25 @@ export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({
   createdAt: true,
 });
 
+export const createNewsArticleSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  content: z.string().optional(),
+  imageUrl: z.string().url("Invalid image URL").optional().or(z.literal('')),
+  category: z.enum(['cultura', 'esportes', 'shows', 'vida-noturna', 'geral']),
+  source: z.string().optional(),
+  author: z.string().optional(),
+  url: z.string().optional(),
+  publishedAt: z.string().optional(),
+  isDraft: z.boolean().optional(),
+});
+
+export const updateNewsArticleSchema = createNewsArticleSchema.partial();
+
 export type InsertNewsArticle = z.infer<typeof insertNewsArticleSchema>;
 export type NewsArticleDB = typeof newsArticles.$inferSelect;
+export type CreateNewsArticle = z.infer<typeof createNewsArticleSchema>;
+export type UpdateNewsArticle = z.infer<typeof updateNewsArticleSchema>;
 
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

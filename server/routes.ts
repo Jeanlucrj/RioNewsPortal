@@ -7,7 +7,7 @@ import { NewsService } from "./services/news-service";
 import { SportsService } from "./services/sports-service";
 import { EventsService } from "./services/events-service";
 import { RSSService } from "./services/rss-service";
-import { registerUserSchema, loginUserSchema, type NewsCategory } from "@shared/schema";
+import { registerUserSchema, loginUserSchema, createNewsArticleSchema, updateNewsArticleSchema, type NewsCategory } from "@shared/schema";
 
 const newsService = new NewsService();
 const sportsService = new SportsService();
@@ -177,9 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const news = await storage.getNews();
-
-      const article = news.find(a => a.id === id);
+      const article = await storage.getNewsById(id);
       
       if (!article) {
         return res.status(404).json({ error: "Article not found" });
@@ -189,6 +187,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching article:", error);
       res.status(500).json({ error: "Failed to fetch article" });
+    }
+  });
+
+  // ========== ADMIN NEWS ROUTES (Protected) ==========
+
+  // Get all news including drafts (for admin panel)
+  app.get("/api/admin/news", requireAuth, async (req, res) => {
+    try {
+      const news = await storage.getAllNewsForAdmin();
+      res.json(news);
+    } catch (error) {
+      console.error("Error fetching admin news:", error);
+      res.status(500).json({ error: "Failed to fetch news" });
+    }
+  });
+
+  // Create new article
+  app.post("/api/admin/news", requireAuth, async (req, res) => {
+    try {
+      const articleData = createNewsArticleSchema.parse(req.body);
+      const article = await storage.createNewsArticle(articleData);
+      
+      // Clear cache after creating
+      await storage.clearCache();
+      
+      res.status(201).json(article);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Validation error", details: error.errors });
+      }
+      console.error("Error creating article:", error);
+      res.status(500).json({ error: "Failed to create article" });
+    }
+  });
+
+  // Update article
+  app.put("/api/admin/news/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const articleData = updateNewsArticleSchema.parse(req.body);
+      
+      const article = await storage.updateNewsArticle(id, articleData);
+      
+      // Clear cache after updating
+      await storage.clearCache();
+      
+      res.json(article);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Validation error", details: error.errors });
+      }
+      if (error.message === "Article not found after update") {
+        return res.status(404).json({ error: "Article not found" });
+      }
+      console.error("Error updating article:", error);
+      res.status(500).json({ error: "Failed to update article" });
+    }
+  });
+
+  // Delete article
+  app.delete("/api/admin/news/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteNewsArticle(id);
+      
+      // Clear cache after deleting
+      await storage.clearCache();
+      
+      res.json({ message: "Article deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      res.status(500).json({ error: "Failed to delete article" });
     }
   });
 

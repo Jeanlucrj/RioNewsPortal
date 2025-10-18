@@ -21,6 +21,11 @@ export interface IStorage {
   
   saveNews(articles: NewsArticle[]): Promise<number>;
   getNews(category?: NewsCategory): Promise<NewsArticle[]>;
+  getNewsById(id: string, includeDrafts?: boolean): Promise<NewsArticle | undefined>;
+  getAllNewsForAdmin(category?: NewsCategory): Promise<NewsArticle[]>;
+  createNewsArticle(article: any): Promise<NewsArticle>;
+  updateNewsArticle(id: string, article: any): Promise<NewsArticle>;
+  deleteNewsArticle(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -47,7 +52,13 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: new Date(),
+      role: insertUser.role || 'editor',
+      isActive: insertUser.isActive ?? true,
+    };
     this.users.set(id, user);
     return user;
   }
@@ -208,6 +219,91 @@ export class MemStorage implements IStorage {
   }
 
   async getNews(category?: NewsCategory): Promise<NewsArticle[]> {
+    let query = db.select().from(newsArticlesTable)
+      .where(eq(newsArticlesTable.isDraft, false))
+      .orderBy(desc(newsArticlesTable.publishedAt));
+    const allNews = await query;
+    
+    const mappedNews: NewsArticle[] = allNews.map((article: any) => ({
+      id: article.id,
+      title: article.title,
+      description: article.description,
+      content: article.content || undefined,
+      imageUrl: article.imageUrl || undefined,
+      category: article.category as NewsCategory,
+      source: article.source,
+      publishedAt: article.publishedAt.toISOString(),
+      url: article.url,
+      author: article.author || undefined,
+    }));
+
+    if (category) {
+      return mappedNews.filter(n => n.category === category);
+    }
+
+    return mappedNews;
+  }
+
+  async getNewsById(id: string, includeDrafts: boolean = false): Promise<NewsArticle | undefined> {
+    let query = db.select().from(newsArticlesTable).where(eq(newsArticlesTable.id, id));
+    
+    const result = await query;
+    if (result.length === 0) return undefined;
+    
+    const article = result[0];
+    
+    if (!includeDrafts && article.isDraft) {
+      return undefined;
+    }
+    
+    return {
+      id: article.id,
+      title: article.title,
+      description: article.description,
+      content: article.content || undefined,
+      imageUrl: article.imageUrl || undefined,
+      category: article.category as NewsCategory,
+      source: article.source,
+      publishedAt: article.publishedAt.toISOString(),
+      url: article.url,
+      author: article.author || undefined,
+    };
+  }
+
+  async createNewsArticle(articleData: any): Promise<NewsArticle> {
+    const id = randomUUID();
+    const newsData = {
+      id,
+      title: articleData.title,
+      description: articleData.description,
+      content: articleData.content || null,
+      imageUrl: articleData.imageUrl || null,
+      category: articleData.category,
+      source: articleData.source || 'Rio Notícias',
+      publishedAt: articleData.publishedAt ? new Date(articleData.publishedAt) : new Date(),
+      url: articleData.url || '',
+      author: articleData.author || null,
+      isManual: true,
+      isDraft: articleData.isDraft || false,
+    };
+
+    await db.insert(newsArticlesTable).values(newsData);
+
+    return {
+      id: newsData.id,
+      title: newsData.title,
+      description: newsData.description,
+      content: newsData.content || undefined,
+      imageUrl: newsData.imageUrl || undefined,
+      category: newsData.category as NewsCategory,
+      source: newsData.source,
+      publishedAt: newsData.publishedAt.toISOString(),
+      url: newsData.url,
+      author: newsData.author || undefined,
+    };
+  }
+
+  async getAllNewsForAdmin(category?: NewsCategory): Promise<NewsArticle[]> {
     let query = db.select().from(newsArticlesTable).orderBy(desc(newsArticlesTable.publishedAt));
     const allNews = await query;
     
@@ -229,6 +325,46 @@ export class MemStorage implements IStorage {
     }
 
     return mappedNews;
+  }
+
+  async updateNewsArticle(id: string, articleData: any): Promise<NewsArticle> {
+    const existing = await db.select().from(newsArticlesTable).where(eq(newsArticlesTable.id, id));
+    if (existing.length === 0) {
+      throw new Error('Article not found');
+    }
+
+    const current = existing[0];
+    const updateData: any = {};
+
+    if (articleData.title !== undefined) updateData.title = articleData.title;
+    if (articleData.description !== undefined) updateData.description = articleData.description;
+    if (articleData.content !== undefined) updateData.content = articleData.content || null;
+    if (articleData.imageUrl !== undefined) updateData.imageUrl = articleData.imageUrl || null;
+    if (articleData.category !== undefined) updateData.category = articleData.category;
+    if (articleData.source !== undefined) updateData.source = articleData.source;
+    if (articleData.url !== undefined) updateData.url = articleData.url;
+    if (articleData.author !== undefined) updateData.author = articleData.author || null;
+    if (articleData.isDraft !== undefined) updateData.isDraft = articleData.isDraft;
+    if (articleData.publishedAt !== undefined) updateData.publishedAt = new Date(articleData.publishedAt);
+
+    if (Object.keys(updateData).length === 0) {
+      return this.getNewsById(id, true) as Promise<NewsArticle>;
+    }
+
+    await db.update(newsArticlesTable)
+      .set(updateData)
+      .where(eq(newsArticlesTable.id, id));
+
+    const updated = await this.getNewsById(id, true);
+    if (!updated) {
+      throw new Error('Article not found after update');
+    }
+    return updated;
+  }
+
+  async deleteNewsArticle(id: string): Promise<boolean> {
+    const result = await db.delete(newsArticlesTable).where(eq(newsArticlesTable.id, id));
+    return true;
   }
 }
 
