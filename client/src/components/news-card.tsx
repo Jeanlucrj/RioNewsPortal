@@ -85,7 +85,7 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
   );
 
   return (
-    <Link href={`/noticia/${article.id}`} onClick={onClick} data-testid={`link-article-${article.id}`}>
+    <Link href={`/noticia/${encodeURIComponent(article.id)}`} onClick={onClick} data-testid={`link-article-${article.id}`}>
       {content}
     </Link>
   );

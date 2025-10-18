@@ -176,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get specific news article by ID from database
   app.get("/api/news/:id", async (req, res) => {
     try {
-      const { id } = req.params;
+      const id = decodeURIComponent(req.params.id);
       const article = await storage.getNewsById(id);
       
       if (!article) {

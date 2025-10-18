@@ -89,7 +89,7 @@ const RSS_FEEDS: RSSFeed[] = [
 const categoryKeywords: Record<NewsCategory, string[]> = {
   esportes: ["brasileirão", "série a do", "série b do", "campeonato brasileiro", "libertadores", "copa do brasil", "futebol", "escalação do", "palpite para o jogo", "dicas e palpites", "onde assistir ao vivo", "gol do", "atacante do", "zagueiro", "meia do", "volante do", "técnico do time", "jogador do time", "vitória do", "derrota do", "empate entre", "maracanã terá", "estádio do", "flamengo x", "fluminense x", "vasco x", "botafogo x", "palmeiras x", "corinthians x", "time terá desfalque", "suspenso para"],
   shows: ["show de", "festival de música", "concerto", "banda", "musical", "rock", "samba", "palco", "turnê", "cantor", "cantora", "apresentação musical", "álbum", "single", "música nova", "setlist", "ingressos para o show"],
-  cultura: ["cinema", "filme", "série de tv", "série da", "teatro", "peça teatral", "exposição", "museu", "galeria de arte", "literatura", "livro", "autor", "escritor", "artista plástico", "ator", "atriz", "documentário", "estreia nos cinemas", "streaming"],
+  cultura: ["cinema", "filme", "série de tv", "série da", "novela", "capítulo da", "remake de", "teatro", "peça teatral", "exposição", "museu", "galeria de arte", "literatura", "livro", "autor", "escritor", "artista plástico", "ator", "atriz", "documentário", "estreia nos cinemas", "streaming", "final de"],
   gastronomia: ["restaurante", "restaurantes", "comer e beber", "comer & beber", "gastronomia", "culinária", "chef", "cardápio", "pratos do", "crítica gastronômica", "melhores restaurantes", "degustação", "vinhos", "bar inaugura", "bares do rio", "receita de"],
   geral: [],
 };
@@ -162,10 +162,7 @@ export class RSSService {
         .filter((item: any) => item.title && item.link)
         .map((item: any) => {
           const description = this.stripHtml(item.contentSnippet || item.content || item.summary || "");
-          const detectedCategory = this.detectCategory(item.title + " " + description);
-          
-          // Use feed category as fallback when no keywords match (detected = "geral")
-          const category = (detectedCategory === "geral" && feedCategory) ? feedCategory : detectedCategory;
+          const category = this.detectCategory(item.title + " " + description);
           
           // Extract image URL from various sources
           let imageUrl = undefined;

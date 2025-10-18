@@ -27,7 +27,7 @@ const categoryColors: Record<string, string> = {
 
 export default function Article() {
   const [, params] = useRoute("/noticia/:id");
-  const articleId = params?.id;
+  const articleId = params?.id ? decodeURIComponent(params.id) : undefined;
 
   const { data: article, isLoading } = useQuery<NewsArticle>({
     queryKey: ["/api", "news", articleId],
