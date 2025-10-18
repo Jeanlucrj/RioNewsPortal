@@ -49,6 +49,26 @@ const RSS_FEEDS: RSSFeed[] = [
     url: "https://www.gazetadopovo.com.br/feed/rss/cultura.xml",
     category: "cultura",
   },
+  {
+    name: "GloboEsporte",
+    url: "https://ge.globo.com/rss/ge/futebol/",
+    category: "esportes",
+  },
+  {
+    name: "O Globo - Cultura",
+    url: "https://oglobo.globo.com/cultura/rss.xml",
+    category: "cultura",
+  },
+  {
+    name: "Rolling Stone Brasil",
+    url: "https://rollingstone.uol.com.br/feed/",
+    category: "shows",
+  },
+  {
+    name: "Omelete",
+    url: "https://www.omelete.com.br/feed",
+    category: "shows",
+  },
 ];
 
 const RSS2JSON_API = "https://api.rss2json.com/v1/api.json";
