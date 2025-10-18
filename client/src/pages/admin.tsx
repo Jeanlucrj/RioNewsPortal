@@ -103,7 +103,7 @@ export default function Admin() {
 
   const createMutation = useMutation({
     mutationFn: (data: ArticleFormData) =>
-      apiRequest("/api/admin/news", "POST", data),
+      apiRequest("POST", "/api/admin/news", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/news"] });
       queryClient.invalidateQueries({ queryKey: ["/api/news"] });
@@ -125,7 +125,7 @@ export default function Admin() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<ArticleFormData> }) =>
-      apiRequest(`/api/admin/news/${id}`, "PUT", data),
+      apiRequest("PUT", `/api/admin/news/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/news"] });
       queryClient.invalidateQueries({ queryKey: ["/api/news"] });
@@ -148,7 +148,7 @@ export default function Admin() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/api/admin/news/${id}`, "DELETE"),
+      apiRequest("DELETE", `/api/admin/news/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/news"] });
       queryClient.invalidateQueries({ queryKey: ["/api/news"] });
@@ -167,7 +167,7 @@ export default function Admin() {
   });
 
   const logoutMutation = useMutation({
-    mutationFn: () => apiRequest("/api/auth/logout", "POST"),
+    mutationFn: () => apiRequest("POST", "/api/auth/logout"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       setLocation("/login");
