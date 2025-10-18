@@ -13,19 +13,19 @@ interface NewsCardProps {
 }
 
 const categoryLabels: Record<string, string> = {
-  cultura: "Cultura",
-  esportes: "Esportes",
-  shows: "Shows",
-  "vida-noturna": "Vida Noturna",
-  geral: "Geral",
+  cultura: "CULTURA",
+  esportes: "ESPORTES",
+  shows: "SHOWS",
+  "vida-noturna": "VIDA NOTURNA",
+  geral: "GERAL",
 };
 
 const categoryColors: Record<string, string> = {
-  cultura: "bg-cultura text-white",
-  esportes: "bg-esportes text-white",
-  shows: "bg-shows text-white",
-  "vida-noturna": "bg-vida-noturna text-white",
-  geral: "bg-primary text-primary-foreground",
+  cultura: "bg-purple-500 hover:bg-purple-600 text-white border-0",
+  esportes: "bg-green-500 hover:bg-green-600 text-white border-0",
+  shows: "bg-pink-500 hover:bg-pink-600 text-white border-0",
+  "vida-noturna": "bg-blue-500 hover:bg-blue-600 text-white border-0",
+  geral: "bg-cyan-500 hover:bg-cyan-600 text-white border-0",
 };
 
 export function NewsCard({ article, featured = false, onClick }: NewsCardProps) {
@@ -48,23 +48,15 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
             data-testid={`img-article-${article.id}`}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <Badge
-            className={`absolute top-4 left-4 uppercase text-xs font-bold tracking-wide ${categoryColors[article.category]}`}
-            data-testid={`badge-category-${article.id}`}
-          >
-            {categoryLabels[article.category]}
-          </Badge>
         </div>
       )}
       <div className="p-6">
-        {!article.imageUrl && (
-          <Badge
-            className={`mb-3 uppercase text-xs font-bold tracking-wide ${categoryColors[article.category]}`}
-            data-testid={`badge-category-${article.id}`}
-          >
-            {categoryLabels[article.category]}
-          </Badge>
-        )}
+        <Badge
+          className={`mb-3 uppercase text-xs font-bold tracking-wider px-3 py-1 rounded-md ${categoryColors[article.category]}`}
+          data-testid={`badge-category-${article.id}`}
+        >
+          {categoryLabels[article.category]}
+        </Badge>
         <h3
           className={`font-semibold mb-2 line-clamp-2 ${featured ? "text-3xl font-serif" : "text-xl"}`}
           data-testid={`text-title-${article.id}`}
