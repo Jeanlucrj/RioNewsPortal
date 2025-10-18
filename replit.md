@@ -12,11 +12,11 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - Design responsivo completo
 
 ### Categorias
-- Cultura: Museus, exposições, teatro, cinema (18 artigos)
-- Esportes: Flamengo, Fluminense, Vasco, Botafogo, campeonatos (10 artigos)
+- Cultura: Museus, exposições, teatro, cinema (13 artigos)
+- Esportes: Flamengo, Fluminense, Vasco, Botafogo, campeonatos (11 artigos)
 - Shows: Festivais, concertos, música ao vivo (5 artigos)
-- Vida Noturna: Bares, baladas, eventos noturnos (0 artigos - sem feed específico)
-- Geral: Notícias variadas do Rio (48 artigos)
+- Gastronomia: Restaurantes, bares, culinária carioca (feed Veja Rio Comer & Beber)
+- Geral: Notícias variadas do Rio (50 artigos)
 
 ### Páginas Individuais
 - Visualização completa de artigos
@@ -55,11 +55,12 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **APIs Integradas**:
   - NewsData.io (notícias gerais do Brasil/Rio)
   - TheSportsDB (dados esportivos)
-  - **RSS Feeds (11 portais) - Notícias locais categorizadas** ✨
+  - **RSS Feeds (12 portais) - Notícias locais categorizadas** ✨
     - **Geral**: G1 Rio, O Globo Rio, O Dia, Extra (instável), Diário do Rio, Veja Rio, Gazeta do Povo
     - **Cultura**: Gazeta do Povo Cultura, O Globo Cultura
     - **Esportes**: GloboEsporte
-    - **Shows**: Rolling Stone Brasil, Omelete
+    - **Shows**: Rolling Stone Brasil, Omelete (instável - rate limit)
+    - **Gastronomia**: Veja Rio Comer & Beber (instável - rate limit)
   - Sympla API (eventos brasileiros) - OPCIONAL
   - Eventbrite API (eventos internacionais) - OPCIONAL
   - Mock data para eventos (fallback)
@@ -78,7 +79,7 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
   - Cultura (Purple): 280 65% 55%
   - Esportes (Green): 140 60% 45%
   - Shows (Pink): 330 75% 55%
-  - Vida Noturna (Blue): 250 70% 50%
+  - Gastronomia (Orange): 25 90% 55%
 
 ### APIs e Variáveis de Ambiente
 - `DATABASE_URL`: URL do PostgreSQL (auto-configurado)
@@ -189,10 +190,10 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 
 ### 🤖 Categorização Automática
 O sistema detecta automaticamente a categoria de cada notícia baseado em palavras-chave:
-- **Cultura**: arte, museu, teatro, cinema, exposição
-- **Esportes**: futebol, flamengo, vasco, botafogo, fluminense
-- **Shows**: música, festival, concerto, banda
-- **Vida Noturna**: bar, balada, festa, gastronomia
+- **Cultura**: arte, museu, teatro, cinema, exposição, filmes, séries
+- **Esportes**: brasileirão, futebol, campeonato, flamengo x, vasco x, botafogo x
+- **Shows**: show de, festival de música, concerto, banda, álbum
+- **Gastronomia**: restaurante, comer e beber, culinária, chef, cardápio, vinhos
 - **Geral**: demais notícias
 
 ### 🔄 Sincronização

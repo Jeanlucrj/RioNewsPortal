@@ -16,7 +16,7 @@ const categoryLabels: Record<string, string> = {
   cultura: "CULTURA",
   esportes: "ESPORTES",
   shows: "SHOWS",
-  "vida-noturna": "VIDA NOTURNA",
+  gastronomia: "GASTRONOMIA",
   geral: "GERAL",
 };
 
@@ -24,7 +24,7 @@ const categoryColors: Record<string, string> = {
   cultura: "bg-purple-500 hover:bg-purple-600 text-white border-0",
   esportes: "bg-green-500 hover:bg-green-600 text-white border-0",
   shows: "bg-pink-500 hover:bg-pink-600 text-white border-0",
-  "vida-noturna": "bg-blue-500 hover:bg-blue-600 text-white border-0",
+  gastronomia: "bg-orange-500 hover:bg-orange-600 text-white border-0",
   geral: "bg-cyan-500 hover:bg-cyan-600 text-white border-0",
 };
 

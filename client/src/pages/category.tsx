@@ -24,10 +24,10 @@ const categoryConfig: Record<NewsCategory, { label: string; color: string; gradi
     color: "bg-shows",
     gradient: "from-pink-600 to-pink-400",
   },
-  "vida-noturna": {
-    label: "Vida Noturna",
-    color: "bg-vida-noturna",
-    gradient: "from-blue-600 to-blue-400",
+  gastronomia: {
+    label: "Gastronomia",
+    color: "bg-gastronomia",
+    gradient: "from-orange-600 to-orange-400",
   },
   geral: {
     label: "Geral",
