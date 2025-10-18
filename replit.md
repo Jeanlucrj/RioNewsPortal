@@ -12,11 +12,11 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - Design responsivo completo
 
 ### Categorias
-- Cultura: Museus, exposições, teatro, cinema (18 artigos)
+- Cultura: Museus, exposições, teatro, cinema (26 artigos)
 - Esportes: Flamengo, Fluminense, Vasco, Botafogo, campeonatos (11 artigos)
-- Shows: Festivais, concertos, música ao vivo (9 artigos)
-- Gastronomia: Restaurantes, bares, culinária carioca (5 artigos)
-- Geral: Notícias variadas do Rio (71 artigos)
+- Shows: Festivais, concertos, música ao vivo (17 artigos)
+- Gastronomia: Restaurantes, bares, culinária carioca (16 artigos)
+- Geral: Notícias variadas do Rio (54 artigos)
 
 ### Páginas Individuais
 - Visualização completa de artigos
@@ -89,7 +89,7 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - `THESPORTSDB_API_KEY`: Chave da API TheSportsDB (default: "3") ✅ **ATIVA**
 - `SYMPLA_API_KEY`: Token s_token do Sympla (OPCIONAL)
 - `EVENTBRITE_API_KEY`: OAuth token do Eventbrite (OPCIONAL)
-- **RSS Feeds**: 15 portais configurados, 13 funcionando ✅ **ATIVOS - 114+ notícias**
+- **RSS Feeds**: 15 portais configurados, 13 funcionando ✅ **ATIVOS - 124+ notícias**
   - Parser nativo: rss-parser (sem rate limits do RSS2JSON) ✨
 
 ## Estrutura de Rotas
@@ -184,7 +184,8 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **Biblioteca**: rss-parser nativa do Node.js ✨ **NOVO**
 - **Vantagens**: Sem rate limits, sem dependência de APIs externas
 - **Timeout**: 20 segundos por feed
-- **Volume**: 114+ artigos de 13 portais funcionando
+- **Volume**: 124+ artigos de 13 portais funcionando
+- **Fallback de Categoria**: Feeds podem ter categoria manual que é usada quando keywords não detectam categoria específica
 
 ### ✅ Feeds Ativos (13 funcionando)
 **Geral (7 feeds):**
@@ -226,9 +227,10 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
 - **Automática**: Notícias atualizadas ao iniciar servidor
 - **Manual**: Use `POST /api/news/sync-rss` para forçar atualização
 - **Consulta**: Use `GET /api/news/rss` para ver apenas notícias RSS em tempo real
-- **Volume**: 114+ artigos sincronizados de 13 portais (15 feeds configurados)
+- **Volume**: 124+ artigos sincronizados de 13 portais (15 feeds configurados)
 - **Timeout**: 20 segundos para feeds mais lentos
 - **Parser**: rss-parser nativo (zero rate limits!) ✨
+- **Categorização**: Híbrida (keywords prioritárias + fallback para categoria do feed quando sem match)
 
 ## Funcionalidades em Desenvolvimento
 
@@ -241,12 +243,12 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
   - Cache invalidation após sync
   - Database-first fetch (mocks apenas como fallback)
 - **RSS Feeds (15 feeds de 13 portais) com categorização automática e persistência** ✨
-  - 13 fontes ativas: G1 Rio, O Globo, O Dia, Diário do Rio, Veja Rio, Gazeta do Povo (2 feeds), GloboEsporte, Rolling Stone, Veja Rio C&B, G1 Pop & Arte
+  - 13 fontes ativas: G1 Rio, O Globo, O Dia, Diário do Rio, Veja Rio, Gazeta do Povo (2 feeds), GloboEsporte, Rolling Stone, Veja Rio C&B, G1 Pop & Arte, G1 Turismo e Viagem
   - **Parser nativo rss-parser**: Sem rate limits do RSS2JSON ✨ **NOVO**
-  - Detecção inteligente de categorias
+  - Detecção inteligente de categorias com fallback
   - Integração server-side completa
   - **Persistência PostgreSQL com UPSERT**
-  - **Auto-sync ao iniciar servidor** (114+ artigos)
+  - **Auto-sync ao iniciar servidor** (124+ artigos)
   - **Database-first**: Todas as rotas buscam do database
   - Endpoint manual: POST /api/news/sync-rss
   - Páginas de categoria funcionando corretamente
