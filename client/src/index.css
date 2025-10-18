@@ -96,6 +96,7 @@
   --esportes: 140 60% 45%;
   --shows: 330 75% 55%;
   --gastronomia: 25 90% 55%;
+  --internacional: 210 70% 50%;
 
   /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
 
@@ -214,6 +215,7 @@
   --esportes: 140 60% 55%;
   --shows: 330 75% 60%;
   --gastronomia: 25 90% 60%;
+  --internacional: 210 70% 60%;
 
   /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
   --sidebar-primary-border: hsl(var(--sidebar-primary));

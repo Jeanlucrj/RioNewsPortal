@@ -84,6 +84,21 @@ const RSS_FEEDS: RSSFeed[] = [
     url: "https://g1.globo.com/dynamo/turismo-e-viagem/rss2.xml",
     category: "gastronomia",
   },
+  {
+    name: "BBC Brasil",
+    url: "https://feeds.bbci.co.uk/portuguese/rss.xml",
+    category: "internacional",
+  },
+  {
+    name: "DW Brasil",
+    url: "https://rss.dw.com/xml/rss-br-all",
+    category: "internacional",
+  },
+  {
+    name: "G1 - Mundo",
+    url: "https://g1.globo.com/dynamo/mundo/rss2.xml",
+    category: "internacional",
+  },
 ];
 
 const categoryKeywords: Record<NewsCategory, string[]> = {
@@ -91,6 +106,7 @@ const categoryKeywords: Record<NewsCategory, string[]> = {
   shows: ["show de", "festival de música", "concerto", "banda", "musical", "rock", "samba", "palco", "turnê", "cantor", "cantora", "apresentação musical", "álbum", "single", "música nova", "setlist", "ingressos para o show"],
   cultura: ["cinema", "filme", "série de tv", "série da", "novela", "capítulo da", "remake de", "teatro", "peça teatral", "exposição", "museu", "galeria de arte", "literatura", "livro", "autor", "escritor", "artista plástico", "ator", "atriz", "documentário", "estreia nos cinemas", "streaming", "final de"],
   gastronomia: ["restaurante", "restaurantes", "comer e beber", "comer & beber", "gastronomia", "culinária", "chef", "cardápio", "pratos do", "crítica gastronômica", "melhores restaurantes", "degustação", "vinhos", "bar inaugura", "bares do rio", "receita de"],
+  internacional: ["estados unidos", "eua", "china", "europa", "rússia", "ucrânia", "guerra na", "donald trump", "joe biden", "nato", "otan", "união europeia", "house of representatives", "senate", "congresso americano", "parlamento europeu", "putin", "xi jinping", "macron", "diplomacia internacional", "relações exteriores", "g7", "g20", "onu", "organização das nações", "acordo internacional", "cúpula internacional", "eleições nos", "presidente dos", "primeiro-ministro", "chanceler alemã"],
   geral: [],
 };
 
@@ -140,7 +156,7 @@ export class RSSService {
     const hasBlacklistedTerm = sportsBlacklist.some(term => lowerText.includes(term));
     
     // Ordem de prioridade: esportes primeiro para evitar conflitos
-    const priorityOrder: NewsCategory[] = ["esportes", "shows", "cultura", "gastronomia"];
+    const priorityOrder: NewsCategory[] = ["internacional", "esportes", "shows", "cultura", "gastronomia"];
     
     for (const category of priorityOrder) {
       // Pula esportes se tem termo blacklisted

@@ -66,7 +66,7 @@ export const createNewsArticleSchema = z.object({
   description: z.string().min(1, "Description is required"),
   content: z.string().optional(),
   imageUrl: z.string().url("Invalid image URL").optional().or(z.literal('')),
-  category: z.enum(['cultura', 'esportes', 'shows', 'gastronomia', 'geral']),
+  category: z.enum(['cultura', 'esportes', 'shows', 'gastronomia', 'internacional', 'geral']),
   source: z.string().optional(),
   author: z.string().optional(),
   url: z.string().optional(),
@@ -139,7 +139,7 @@ export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSub
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 
-export type NewsCategory = 'cultura' | 'esportes' | 'shows' | 'gastronomia' | 'geral';
+export type NewsCategory = 'cultura' | 'esportes' | 'shows' | 'gastronomia' | 'internacional' | 'geral';
 
 export interface NewsArticle {
   id: string;
@@ -192,7 +192,7 @@ export const newsArticleSchema = z.object({
   description: z.string(),
   content: z.string().optional(),
   imageUrl: z.string().optional(),
-  category: z.enum(['cultura', 'esportes', 'shows', 'gastronomia', 'geral']),
+  category: z.enum(['cultura', 'esportes', 'shows', 'gastronomia', 'internacional', 'geral']),
   source: z.string(),
   publishedAt: z.string(),
   url: z.string(),
@@ -204,7 +204,7 @@ export const eventSchema = z.object({
   title: z.string(),
   description: z.string(),
   imageUrl: z.string().optional(),
-  category: z.enum(['cultura', 'esportes', 'shows', 'gastronomia', 'geral']),
+  category: z.enum(['cultura', 'esportes', 'shows', 'gastronomia', 'internacional', 'geral']),
   date: z.string(),
   time: z.string().optional(),
   venue: z.string().optional(),
