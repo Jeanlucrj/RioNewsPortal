@@ -192,7 +192,11 @@ export class RSSService {
         .filter((item: any) => item.title && item.link)
         .map((item: any) => {
           const description = this.stripHtml(item.contentSnippet || item.content || item.summary || "");
-          const category = this.detectCategory(item.title + " " + description);
+          
+          // Use feed category if specified and not "geral", otherwise detect
+          const category = (feedCategory && feedCategory !== "geral") 
+            ? feedCategory 
+            : this.detectCategory(item.title + " " + description);
           
           // Extract image URL from various sources
           let imageUrl = undefined;
