@@ -39,6 +39,16 @@ const RSS_FEEDS: RSSFeed[] = [
     url: "https://vejario.abril.com.br/feed/",
     category: "geral",
   },
+  {
+    name: "Gazeta do Povo - Últimas Notícias",
+    url: "https://www.gazetadopovo.com.br/feed/rss/ultimas-noticias.xml",
+    category: "geral",
+  },
+  {
+    name: "Gazeta do Povo - Cultura",
+    url: "https://www.gazetadopovo.com.br/feed/rss/cultura.xml",
+    category: "cultura",
+  },
 ];
 
 const RSS2JSON_API = "https://api.rss2json.com/v1/api.json";
@@ -78,7 +88,7 @@ export class RSSService {
           api_key: "", // Free tier
           count: 10,
         },
-        timeout: 10000,
+        timeout: 20000, // 20 seconds for slower feeds like Gazeta do Povo
       });
 
       if (!response.data || !response.data.items) {

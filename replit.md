@@ -171,7 +171,7 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **UX**: Loading states, empty states, error handling
 - **Visual**: Uso de gradientes, imagens hero, badges coloridos por categoria
 
-## Integrações RSS (6 Portais do Rio)
+## Integrações RSS (8 Feeds de 7 Portais)
 
 ### ✅ Feeds Ativos
 - **G1 Rio de Janeiro**: Feed RSS completo da região
@@ -180,6 +180,8 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **Extra**: Notícias populares, serviços e comunidade (feed instável)
 - **Diário do Rio**: Foco em cultura, urbanismo e política local
 - **Veja Rio**: Cultura, gastronomia, lazer e eventos
+- **Gazeta do Povo - Últimas Notícias**: Notícias gerais do Brasil ✨ **NOVO**
+- **Gazeta do Povo - Cultura**: Séries, filmes, documentários, livros ✨ **NOVO**
 
 ### 🤖 Categorização Automática
 O sistema detecta automaticamente a categoria de cada notícia baseado em palavras-chave:
@@ -190,10 +192,11 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
 - **Geral**: demais notícias
 
 ### 🔄 Sincronização
-- **Automática**: Notícias atualizadas em tempo real
+- **Automática**: Notícias atualizadas ao iniciar servidor
 - **Manual**: Use `POST /api/news/sync-rss` para forçar atualização
-- **Consulta**: Use `GET /api/news/rss` para ver apenas notícias RSS
-- **Volume**: 40+ artigos sincronizados de 5-6 fontes simultaneamente
+- **Consulta**: Use `GET /api/news/rss` para ver apenas notícias RSS em tempo real
+- **Volume**: 90+ artigos sincronizados de 7 portais (8 feeds) simultaneamente
+- **Timeout**: 20 segundos para feeds mais lentos
 
 ## Funcionalidades em Desenvolvimento
 
@@ -205,8 +208,8 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
   - UPSERT no database (insert/update automático)
   - Cache invalidation após sync
   - Database-first fetch (mocks apenas como fallback)
-- **RSS Feeds (6 portais do Rio) com categorização automática e persistência** ✨
-  - 6 fontes: G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio
+- **RSS Feeds (8 feeds de 7 portais) com categorização automática e persistência** ✨
+  - 7 fontes: G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio, Gazeta do Povo (2 feeds)
   - Detecção inteligente de categorias
   - Integração server-side completa
   - **Persistência PostgreSQL com UPSERT**
