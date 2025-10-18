@@ -74,10 +74,10 @@ const RSS_FEEDS: RSSFeed[] = [
 const RSS2JSON_API = "https://api.rss2json.com/v1/api.json";
 
 const categoryKeywords: Record<NewsCategory, string[]> = {
-  cultura: ["cultura", "arte", "museu", "teatro", "cinema", "exposição", "cultural", "artista", "galeria", "peça", "espetáculo", "livro", "autor"],
-  esportes: ["futebol", "flamengo", "fluminense", "vasco", "botafogo", "esporte", "jogo", "campeonato", "copa", "brasileirão", "gol", "técnico", "jogador", "partida", "time", "clube"],
-  shows: ["show", "música", "festival", "concerto", "banda", "musical", "rock", "samba", "palco", "turnê", "cantor", "cantora", "apresentação musical"],
-  "vida-noturna": ["balada", "boate", "vida noturna", "noitada", "open bar", "happy hour", "pista de dança", "drinks", "bares e restaurantes", "restaurantes e bares", "gastronomia", "culinária", "degustação", "comer & beber", "comer e beber", "guia de restaurantes"],
+  esportes: ["brasileirão", "série a do", "série b do", "campeonato brasileiro", "libertadores", "copa do brasil", "futebol", "escalação do", "palpite para o jogo", "dicas e palpites", "onde assistir ao vivo", "gol do", "atacante do", "zagueiro", "meia do", "volante do", "técnico do time", "jogador do time", "vitória do", "derrota do", "empate entre", "maracanã terá", "estádio do", "flamengo x", "fluminense x", "vasco x", "botafogo x", "palmeiras x", "corinthians x", "time terá desfalque", "suspenso para"],
+  shows: ["show de", "festival de música", "concerto", "banda", "musical", "rock", "samba", "palco", "turnê", "cantor", "cantora", "apresentação musical", "álbum", "single", "música nova", "setlist", "ingressos para o show"],
+  cultura: ["cinema", "filme", "série de tv", "série da", "teatro", "peça teatral", "exposição", "museu", "galeria de arte", "literatura", "livro", "autor", "escritor", "artista plástico", "ator", "atriz", "documentário", "estreia nos cinemas", "streaming"],
+  "vida-noturna": ["balada", "boate", "vida noturna", "noitada", "open bar", "happy hour", "pista de dança", "drinks", "bares e restaurantes", "restaurantes e bares", "gastronomia carioca", "culinária", "degustação", "comer & beber", "comer e beber", "guia de restaurantes"],
   geral: [],
 };
 
@@ -85,10 +85,30 @@ export class RSSService {
   private detectCategory(text: string): NewsCategory {
     const lowerText = text.toLowerCase();
     
-    for (const [category, keywords] of Object.entries(categoryKeywords)) {
-      if (category === "geral") continue;
+    // Blacklist: Se contém estes termos, NÃO é esporte
+    const sportsBlacklist = [
+      "federal fluminense",
+      "universidade fluminense",
+      "uff",
+      "federal do rio",
+      "ufrj",
+      "uerj",
+    ];
+    
+    const hasBlacklistedTerm = sportsBlacklist.some(term => lowerText.includes(term));
+    
+    // Ordem de prioridade: esportes primeiro para evitar conflitos
+    const priorityOrder: NewsCategory[] = ["esportes", "shows", "cultura", "vida-noturna"];
+    
+    for (const category of priorityOrder) {
+      // Pula esportes se tem termo blacklisted
+      if (category === "esportes" && hasBlacklistedTerm) {
+        continue;
+      }
+      
+      const keywords = categoryKeywords[category];
       if (keywords.some(keyword => lowerText.includes(keyword))) {
-        return category as NewsCategory;
+        return category;
       }
     }
     
