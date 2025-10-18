@@ -1,4 +1,4 @@
-import axios from "axios";
+import Parser from "rss-parser";
 import type { NewsArticle, NewsCategory } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -74,9 +74,17 @@ const RSS_FEEDS: RSSFeed[] = [
     url: "https://vejario.abril.com.br/comer-e-beber/feed/",
     category: "gastronomia",
   },
+  {
+    name: "G1 - Pop & Arte",
+    url: "https://g1.globo.com/dynamo/pop-arte/rss2.xml",
+    category: "gastronomia",
+  },
+  {
+    name: "G1 - Turismo e Viagem",
+    url: "https://g1.globo.com/dynamo/turismo-e-viagem/rss2.xml",
+    category: "gastronomia",
+  },
 ];
-
-const RSS2JSON_API = "https://api.rss2json.com/v1/api.json";
 
 const categoryKeywords: Record<NewsCategory, string[]> = {
   esportes: ["brasileirão", "série a do", "série b do", "campeonato brasileiro", "libertadores", "copa do brasil", "futebol", "escalação do", "palpite para o jogo", "dicas e palpites", "onde assistir ao vivo", "gol do", "atacante do", "zagueiro", "meia do", "volante do", "técnico do time", "jogador do time", "vitória do", "derrota do", "empate entre", "maracanã terá", "estádio do", "flamengo x", "fluminense x", "vasco x", "botafogo x", "palmeiras x", "corinthians x", "time terá desfalque", "suspenso para"],
@@ -87,6 +95,21 @@ const categoryKeywords: Record<NewsCategory, string[]> = {
 };
 
 export class RSSService {
+  private parser: Parser;
+
+  constructor() {
+    this.parser = new Parser({
+      timeout: 20000, // 20 seconds
+      customFields: {
+        item: [
+          ['media:content', 'media:content'],
+          ['media:thumbnail', 'media:thumbnail'],
+          ['enclosure', 'enclosure'],
+        ],
+      },
+    });
+  }
+
   private detectCategory(text: string): NewsCategory {
     const lowerText = text.toLowerCase();
     
@@ -125,39 +148,46 @@ export class RSSService {
     return html.replace(/<[^>]*>/g, "").trim();
   }
 
-  async fetchRSSFeed(feedUrl: string, feedName: string): Promise<NewsArticle[]> {
+  async fetchRSSFeed(feedUrl: string, feedName: string, feedCategory?: NewsCategory): Promise<NewsArticle[]> {
     try {
-      const response = await axios.get(RSS2JSON_API, {
-        params: {
-          rss_url: feedUrl,
-          api_key: "", // Free tier
-          count: 10,
-        },
-        timeout: 20000, // 20 seconds for slower feeds like Gazeta do Povo
-      });
+      const feed = await this.parser.parseURL(feedUrl);
 
-      if (!response.data || !response.data.items) {
+      if (!feed.items || feed.items.length === 0) {
         console.log(`No items found in RSS feed: ${feedName}`);
         return [];
       }
 
-      const articles: NewsArticle[] = response.data.items
+      const articles: NewsArticle[] = feed.items
+        .slice(0, 10) // Limit to 10 articles per feed
         .filter((item: any) => item.title && item.link)
         .map((item: any) => {
-          const description = this.stripHtml(item.description || item.content || "");
-          const category = this.detectCategory(item.title + " " + description);
+          const description = this.stripHtml(item.contentSnippet || item.content || item.summary || "");
+          const detectedCategory = this.detectCategory(item.title + " " + description);
+          
+          // Use feed category as fallback when no keywords match (detected = "geral")
+          const category = (detectedCategory === "geral" && feedCategory) ? feedCategory : detectedCategory;
+          
+          // Extract image URL from various sources
+          let imageUrl = undefined;
+          if (item.enclosure?.url) {
+            imageUrl = item.enclosure.url;
+          } else if (item['media:content']?.$ && item['media:content'].$.url) {
+            imageUrl = item['media:content'].$.url;
+          } else if (item['media:thumbnail']?.$ && item['media:thumbnail'].$.url) {
+            imageUrl = item['media:thumbnail'].$.url;
+          }
           
           return {
             id: item.guid || item.link || randomUUID(),
             title: item.title,
             description: description.substring(0, 300),
             content: description,
-            imageUrl: item.enclosure?.link || item.thumbnail,
+            imageUrl,
             category,
             source: feedName,
-            publishedAt: item.pubDate || new Date().toISOString(),
+            publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
             url: item.link,
-            author: item.author,
+            author: item.creator || item.author,
           };
         });
 
@@ -173,7 +203,7 @@ export class RSSService {
     const allArticles: NewsArticle[] = [];
 
     for (const feed of RSS_FEEDS) {
-      const articles = await this.fetchRSSFeed(feed.url, feed.name);
+      const articles = await this.fetchRSSFeed(feed.url, feed.name, feed.category);
       allArticles.push(...articles);
     }
 

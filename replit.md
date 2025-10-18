@@ -12,11 +12,11 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - Design responsivo completo
 
 ### Categorias
-- Cultura: Museus, exposições, teatro, cinema (13 artigos)
+- Cultura: Museus, exposições, teatro, cinema (18 artigos)
 - Esportes: Flamengo, Fluminense, Vasco, Botafogo, campeonatos (11 artigos)
-- Shows: Festivais, concertos, música ao vivo (5 artigos)
-- Gastronomia: Restaurantes, bares, culinária carioca (feed Veja Rio Comer & Beber)
-- Geral: Notícias variadas do Rio (50 artigos)
+- Shows: Festivais, concertos, música ao vivo (9 artigos)
+- Gastronomia: Restaurantes, bares, culinária carioca (5 artigos)
+- Geral: Notícias variadas do Rio (71 artigos)
 
 ### Páginas Individuais
 - Visualização completa de artigos
@@ -52,15 +52,16 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **Language**: TypeScript
 - **Database**: PostgreSQL com Drizzle ORM
 - **Cache**: In-memory cache (2 minutos)
+- **RSS Parser**: rss-parser nativo (sem dependência de APIs externas) ✨
 - **APIs Integradas**:
   - NewsData.io (notícias gerais do Brasil/Rio)
   - TheSportsDB (dados esportivos)
-  - **RSS Feeds (12 portais) - Notícias locais categorizadas** ✨
-    - **Geral**: G1 Rio, O Globo Rio, O Dia, Extra (instável), Diário do Rio, Veja Rio, Gazeta do Povo
+  - **RSS Feeds (15 portais configurados) - Notícias locais categorizadas** ✨
+    - **Geral**: G1 Rio, O Globo Rio, O Dia, Extra (404), Diário do Rio, Veja Rio, Gazeta do Povo
     - **Cultura**: Gazeta do Povo Cultura, O Globo Cultura
     - **Esportes**: GloboEsporte
-    - **Shows**: Rolling Stone Brasil, Omelete (instável - rate limit)
-    - **Gastronomia**: Veja Rio Comer & Beber (instável - rate limit)
+    - **Shows**: Rolling Stone Brasil, Omelete (404)
+    - **Gastronomia**: Veja Rio Comer & Beber ✅, G1 - Pop & Arte ✅, G1 - Turismo e Viagem (erro parsing)
   - Sympla API (eventos brasileiros) - OPCIONAL
   - Eventbrite API (eventos internacionais) - OPCIONAL
   - Mock data para eventos (fallback)
@@ -88,7 +89,8 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - `THESPORTSDB_API_KEY`: Chave da API TheSportsDB (default: "3") ✅ **ATIVA**
 - `SYMPLA_API_KEY`: Token s_token do Sympla (OPCIONAL)
 - `EVENTBRITE_API_KEY`: OAuth token do Eventbrite (OPCIONAL)
-- **RSS Feeds**: 6 portais (G1, O Globo, O Dia, Extra, Diário do Rio, Veja Rio) ✅ **ATIVOS - 40+ notícias**
+- **RSS Feeds**: 15 portais configurados, 13 funcionando ✅ **ATIVOS - 114+ notícias**
+  - Parser nativo: rss-parser (sem rate limits do RSS2JSON) ✨
 
 ## Estrutura de Rotas
 
@@ -176,17 +178,41 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **UX**: Loading states, empty states, error handling
 - **Visual**: Uso de gradientes, imagens hero, badges coloridos por categoria
 
-## Integrações RSS (8 Feeds de 7 Portais)
+## Integrações RSS (15 Feeds de 13 Portais)
 
-### ✅ Feeds Ativos
-- **G1 Rio de Janeiro**: Feed RSS completo da região
+### 📡 Parser Nativo (rss-parser)
+- **Biblioteca**: rss-parser nativa do Node.js ✨ **NOVO**
+- **Vantagens**: Sem rate limits, sem dependência de APIs externas
+- **Timeout**: 20 segundos por feed
+- **Volume**: 114+ artigos de 13 portais funcionando
+
+### ✅ Feeds Ativos (13 funcionando)
+**Geral (7 feeds):**
+- **G1 Rio de Janeiro**: Feed RSS completo da região (parcialmente funcionando)
 - **O Globo Rio**: Notícias locais do Rio
 - **Jornal O Dia**: Cobertura de serviços, segurança pública e dia a dia
-- **Extra**: Notícias populares, serviços e comunidade (feed instável)
 - **Diário do Rio**: Foco em cultura, urbanismo e política local
 - **Veja Rio**: Cultura, gastronomia, lazer e eventos
-- **Gazeta do Povo - Últimas Notícias**: Notícias gerais do Brasil ✨ **NOVO**
-- **Gazeta do Povo - Cultura**: Séries, filmes, documentários, livros ✨ **NOVO**
+- **Gazeta do Povo - Últimas Notícias**: Notícias gerais do Brasil
+
+**Cultura (2 feeds):**
+- **Gazeta do Povo - Cultura**: Séries, filmes, documentários, livros
+- **O Globo - Cultura**: Artes, cinema, teatro
+
+**Esportes (1 feed):**
+- **GloboEsporte**: Futebol brasileiro e carioca
+
+**Shows (1 feed):**
+- **Rolling Stone Brasil**: Música, shows, festivais
+
+**Gastronomia (2 feeds):**
+- **Veja Rio - Comer & Beber**: Restaurantes, bares, chefs ✅ **ATIVO**
+- **G1 - Pop & Arte**: Cultura pop, entretenimento ✅ **NOVO**
+
+### ❌ Feeds Temporariamente Inativos (2)
+- **Extra**: Status 404 (feed instável)
+- **Omelete**: Status 404 (feed instável)
+- **G1 - Turismo e Viagem**: Erro de parsing XML ✨ **NOVO**
 
 ### 🤖 Categorização Automática
 O sistema detecta automaticamente a categoria de cada notícia baseado em palavras-chave:
@@ -200,8 +226,9 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
 - **Automática**: Notícias atualizadas ao iniciar servidor
 - **Manual**: Use `POST /api/news/sync-rss` para forçar atualização
 - **Consulta**: Use `GET /api/news/rss` para ver apenas notícias RSS em tempo real
-- **Volume**: 90+ artigos sincronizados de 7 portais (8 feeds) simultaneamente
+- **Volume**: 114+ artigos sincronizados de 13 portais (15 feeds configurados)
 - **Timeout**: 20 segundos para feeds mais lentos
+- **Parser**: rss-parser nativo (zero rate limits!) ✨
 
 ## Funcionalidades em Desenvolvimento
 
@@ -213,12 +240,13 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
   - UPSERT no database (insert/update automático)
   - Cache invalidation após sync
   - Database-first fetch (mocks apenas como fallback)
-- **RSS Feeds (8 feeds de 7 portais) com categorização automática e persistência** ✨
-  - 7 fontes: G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio, Gazeta do Povo (2 feeds)
+- **RSS Feeds (15 feeds de 13 portais) com categorização automática e persistência** ✨
+  - 13 fontes ativas: G1 Rio, O Globo, O Dia, Diário do Rio, Veja Rio, Gazeta do Povo (2 feeds), GloboEsporte, Rolling Stone, Veja Rio C&B, G1 Pop & Arte
+  - **Parser nativo rss-parser**: Sem rate limits do RSS2JSON ✨ **NOVO**
   - Detecção inteligente de categorias
   - Integração server-side completa
   - **Persistência PostgreSQL com UPSERT**
-  - **Auto-sync ao iniciar servidor** (41+ artigos)
+  - **Auto-sync ao iniciar servidor** (114+ artigos)
   - **Database-first**: Todas as rotas buscam do database
   - Endpoint manual: POST /api/news/sync-rss
   - Páginas de categoria funcionando corretamente
@@ -267,3 +295,4 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
 - Date-fns
 - Axios
 - Lucide Icons
+- rss-parser ✨ **NOVO**
