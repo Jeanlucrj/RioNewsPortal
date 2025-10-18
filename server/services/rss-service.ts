@@ -102,7 +102,7 @@ const RSS_FEEDS: RSSFeed[] = [
 ];
 
 const categoryKeywords: Record<NewsCategory, string[]> = {
-  esportes: ["brasileirão", "série a do", "série b do", "campeonato brasileiro", "libertadores", "copa do brasil", "futebol", "escalação do", "palpite para o jogo", "dicas e palpites", "onde assistir ao vivo", "gol do", "atacante do", "zagueiro", "meia do", "volante do", "técnico do time", "jogador do time", "vitória do", "derrota do", "empate entre", "maracanã terá", "estádio do", "flamengo x", "fluminense x", "vasco x", "botafogo x", "palmeiras x", "corinthians x", "time terá desfalque", "suspenso para"],
+  esportes: ["brasileirão", "série a do", "série b do", "campeonato brasileiro", "campeonato inglês", "campeonato espanhol", "campeonato alemão", "campeonato italiano", "campeonato francês", "premier league", "la liga", "bundesliga", "serie a", "ligue 1", "champions league", "uefa", "libertadores", "copa do brasil", "futebol", "escalação do", "palpite para o jogo", "dicas e palpites", "onde assistir ao vivo", "gol do", "atacante do", "zagueiro", "meia do", "volante do", "técnico do time", "jogador do time", "vitória do", "derrota do", "empate entre", "maracanã terá", "estádio do", "flamengo x", "fluminense x", "vasco x", "botafogo x", "palmeiras x", "corinthians x", "bayern", "barcelona x", "real madrid", "manchester", "arsenal", "chelsea", "liverpool", "time terá desfalque", "suspenso para"],
   shows: ["show de", "festival de música", "concerto", "banda", "musical", "rock", "samba", "palco", "turnê", "cantor", "cantora", "apresentação musical", "álbum", "single", "música nova", "setlist", "ingressos para o show"],
   cultura: ["cinema", "filme", "série de tv", "série da", "novela", "capítulo da", "remake de", "teatro", "peça teatral", "exposição", "museu", "galeria de arte", "literatura", "livro", "autor", "escritor", "artista plástico", "ator", "atriz", "documentário", "estreia nos cinemas", "streaming", "final de"],
   gastronomia: ["restaurante", "restaurantes", "comer e beber", "comer & beber", "gastronomia", "culinária", "chef", "cardápio", "pratos do", "crítica gastronômica", "melhores restaurantes", "degustação", "vinhos", "bar inaugura", "bares do rio", "receita de"],
@@ -156,7 +156,7 @@ export class RSSService {
     const hasBlacklistedTerm = sportsBlacklist.some(term => lowerText.includes(term));
     
     // Ordem de prioridade: esportes primeiro para evitar conflitos
-    const priorityOrder: NewsCategory[] = ["internacional", "esportes", "shows", "cultura", "gastronomia"];
+    const priorityOrder: NewsCategory[] = ["esportes", "internacional", "shows", "cultura", "gastronomia"];
     
     for (const category of priorityOrder) {
       // Pula esportes se tem termo blacklisted
