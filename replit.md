@@ -12,10 +12,11 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - Design responsivo completo
 
 ### Categorias
-- Cultura: Museus, exposições, teatro, cinema
-- Esportes: Flamengo, Fluminense, Vasco, Botafogo, campeonatos
-- Shows: Festivais, concertos, música ao vivo
-- Vida Noturna: Bares, baladas, eventos noturnos
+- Cultura: Museus, exposições, teatro, cinema (12 artigos)
+- Esportes: Flamengo, Fluminense, Vasco, Botafogo, campeonatos (3 artigos)
+- Shows: Festivais, concertos, música ao vivo (2 artigos)
+- Vida Noturna: Bares, baladas, eventos noturnos (0 artigos - categorização automática)
+- Geral: Notícias variadas do Rio (44 artigos)
 
 ### Páginas Individuais
 - Visualização completa de artigos
@@ -34,7 +35,7 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - Header fixo com blur backdrop
 - Menu de categorias com indicador visual
 - Menu mobile responsivo
-- Toggle de tema (light/dark mode)
+- Toggle de tema (light/dark mode) - **Dark mode como padrão em produção** ✨
 
 ## Arquitetura Técnica
 
