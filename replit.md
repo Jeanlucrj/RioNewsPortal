@@ -12,11 +12,11 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - Design responsivo completo
 
 ### Categorias
-- Cultura: Museus, exposições, teatro, cinema (12 artigos)
-- Esportes: Flamengo, Fluminense, Vasco, Botafogo, campeonatos (3 artigos)
-- Shows: Festivais, concertos, música ao vivo (2 artigos)
-- Vida Noturna: Bares, baladas, eventos noturnos (0 artigos - categorização automática)
-- Geral: Notícias variadas do Rio (44 artigos)
+- Cultura: Museus, exposições, teatro, cinema (18 artigos)
+- Esportes: Flamengo, Fluminense, Vasco, Botafogo, campeonatos (10 artigos)
+- Shows: Festivais, concertos, música ao vivo (5 artigos)
+- Vida Noturna: Bares, baladas, eventos noturnos (0 artigos - sem feed específico)
+- Geral: Notícias variadas do Rio (48 artigos)
 
 ### Páginas Individuais
 - Visualização completa de artigos
@@ -55,8 +55,11 @@ Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esporte
 - **APIs Integradas**:
   - NewsData.io (notícias gerais do Brasil/Rio)
   - TheSportsDB (dados esportivos)
-  - **RSS Feeds (6 portais) - Notícias locais categorizadas** ✨
-    - G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio
+  - **RSS Feeds (11 portais) - Notícias locais categorizadas** ✨
+    - **Geral**: G1 Rio, O Globo Rio, O Dia, Extra (instável), Diário do Rio, Veja Rio, Gazeta do Povo
+    - **Cultura**: Gazeta do Povo Cultura, O Globo Cultura
+    - **Esportes**: GloboEsporte
+    - **Shows**: Rolling Stone Brasil, Omelete
   - Sympla API (eventos brasileiros) - OPCIONAL
   - Eventbrite API (eventos internacionais) - OPCIONAL
   - Mock data para eventos (fallback)
