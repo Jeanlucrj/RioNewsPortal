@@ -5,6 +5,7 @@ import { NewsCard } from "@/components/news-card";
 import { EventCard } from "@/components/event-card";
 import type { NewsArticle, Event } from "@shared/schema";
 import { Newspaper, Calendar as CalendarIcon } from "lucide-react";
+import { getDefaultImage } from "@/lib/sports-images";
 
 export default function Home() {
   const { data: news, isLoading: newsLoading } = useQuery<NewsArticle[]>({
@@ -38,9 +39,7 @@ export default function Home() {
                 <div
                   className="absolute inset-0 bg-cover bg-center"
                   style={{
-                    backgroundImage: featuredNews.imageUrl
-                      ? `url(${featuredNews.imageUrl})`
-                      : "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--chart-2)) 100%)",
+                    backgroundImage: `url(${featuredNews.imageUrl || getDefaultImage(featuredNews.category, featuredNews.title, featuredNews.description)})`,
                   }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
