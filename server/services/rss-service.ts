@@ -194,9 +194,13 @@ export class RSSService {
           const description = this.stripHtml(item.contentSnippet || item.content || item.summary || "");
           
           // Use feed category if specified and not "geral", otherwise detect
-          const category = (feedCategory && feedCategory !== "geral") 
-            ? feedCategory 
-            : this.detectCategory(item.title + " " + description);
+          let category: NewsCategory;
+          if (feedCategory && feedCategory !== "geral") {
+            category = feedCategory;
+            console.log(`Using feed category "${feedCategory}" for article: ${item.title.substring(0, 50)}...`);
+          } else {
+            category = this.detectCategory(item.title + " " + description);
+          }
           
           // Extract image URL from various sources
           let imageUrl = undefined;
