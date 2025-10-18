@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import type { NewsArticle } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import defaultImage from "@assets/generated_images/Rio_de_Janeiro_default_news_image_46fc0fc7.png";
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -41,17 +42,15 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
       className={`overflow-hidden hover-elevate active-elevate-2 transition-all duration-200 ${featured ? "md:col-span-2 md:row-span-2" : ""}`}
       data-testid={`card-article-${article.id}`}
     >
-      {article.imageUrl && (
-        <div className={`relative overflow-hidden ${featured ? "h-96" : "h-48"}`}>
-          <img
-            src={article.imageUrl}
-            alt={article.title}
-            className="w-full h-full object-cover"
-            data-testid={`img-article-${article.id}`}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-        </div>
-      )}
+      <div className={`relative overflow-hidden ${featured ? "h-96" : "h-48"}`}>
+        <img
+          src={article.imageUrl || defaultImage}
+          alt={article.title}
+          className="w-full h-full object-cover"
+          data-testid={`img-article-${article.id}`}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+      </div>
       <div className="p-6">
         <Badge
           className={`mb-3 uppercase text-xs font-bold tracking-wider px-3 py-1 rounded-md ${categoryColors[article.category]}`}
