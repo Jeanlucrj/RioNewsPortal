@@ -113,7 +113,16 @@ export class RSSService {
   private detectCategory(text: string): NewsCategory {
     const lowerText = text.toLowerCase();
     
-    // Blacklist: Se contém estes termos, NÃO é esporte
+    // Blacklist geral: Nunca categorizar esses termos
+    const generalBlacklist = [
+      "dr. bumbum",
+      "dr bumbum",
+      "crm cassa",
+      "registro profissional",
+      "cassado no df",
+    ];
+    
+    // Blacklist esportes: Se contém estes termos, NÃO é esporte
     const sportsBlacklist = [
       "federal fluminense",
       "universidade fluminense",
@@ -122,6 +131,11 @@ export class RSSService {
       "ufrj",
       "uerj",
     ];
+    
+    const hasGeneralBlacklist = generalBlacklist.some(term => lowerText.includes(term));
+    if (hasGeneralBlacklist) {
+      return "geral";
+    }
     
     const hasBlacklistedTerm = sportsBlacklist.some(term => lowerText.includes(term));
     

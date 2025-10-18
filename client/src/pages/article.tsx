@@ -30,7 +30,7 @@ export default function Article() {
   const articleId = params?.id ? decodeURIComponent(params.id) : undefined;
 
   const { data: article, isLoading } = useQuery<NewsArticle>({
-    queryKey: ["/api", "news", articleId],
+    queryKey: [`/api/news/${encodeURIComponent(articleId || "")}`],
     enabled: !!articleId,
   });
 
