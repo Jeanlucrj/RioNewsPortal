@@ -224,7 +224,15 @@ export class MemStorage implements IStorage {
       .orderBy(desc(newsArticlesTable.publishedAt));
     const allNews = await query;
     
-    const mappedNews: NewsArticle[] = allNews.map((article: any) => ({
+    // Sort to prioritize news with images (for homepage)
+    // Articles with imageUrl come first, then sorted by publishedAt
+    const sortedNews = allNews.sort((a, b) => {
+      if (a.imageUrl && !b.imageUrl) return -1;
+      if (!a.imageUrl && b.imageUrl) return 1;
+      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    });
+    
+    const mappedNews: NewsArticle[] = sortedNews.map((article: any) => ({
       id: article.id,
       title: article.title,
       description: article.description,

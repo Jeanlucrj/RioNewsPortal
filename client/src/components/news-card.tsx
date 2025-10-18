@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import type { NewsArticle } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import defaultImage from "@assets/generated_images/Rio_de_Janeiro_default_news_image_46fc0fc7.png";
+import { getDefaultImage } from "@/lib/sports-images";
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -37,6 +37,13 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
     locale: ptBR,
   });
 
+  // Get appropriate default image based on category and content
+  const imageUrl = article.imageUrl || getDefaultImage(
+    article.category,
+    article.title,
+    article.description
+  );
+
   const content = (
     <Card
       className={`overflow-hidden hover-elevate active-elevate-2 transition-all duration-200 ${featured ? "md:col-span-2 md:row-span-2" : ""}`}
@@ -44,7 +51,7 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
     >
       <div className={`relative overflow-hidden ${featured ? "h-96" : "h-48"}`}>
         <img
-          src={article.imageUrl || defaultImage}
+          src={imageUrl}
           alt={article.title}
           className="w-full h-full object-cover"
           data-testid={`img-article-${article.id}`}
