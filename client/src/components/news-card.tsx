@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Calendar } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { NewsArticle } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
@@ -20,11 +21,11 @@ const categoryLabels: Record<string, string> = {
 };
 
 const categoryColors: Record<string, string> = {
-  cultura: "bg-purple-600 text-white",
-  esportes: "bg-green-600 text-white",
-  shows: "bg-pink-600 text-white",
-  "vida-noturna": "bg-blue-600 text-white",
-  geral: "bg-gray-600 text-white",
+  cultura: "bg-cultura text-white",
+  esportes: "bg-esportes text-white",
+  shows: "bg-shows text-white",
+  "vida-noturna": "bg-vida-noturna text-white",
+  geral: "bg-primary text-primary-foreground",
 };
 
 export function NewsCard({ article, featured = false, onClick }: NewsCardProps) {
@@ -34,35 +35,51 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
   });
 
   const content = (
-    <div
-      className="bg-[#1a1f2e] rounded-lg overflow-hidden hover-elevate active-elevate-2 transition-all duration-200 flex flex-col h-full"
+    <Card
+      className={`overflow-hidden hover-elevate active-elevate-2 transition-all duration-200 ${featured ? "md:col-span-2 md:row-span-2" : ""}`}
       data-testid={`card-article-${article.id}`}
     >
-      <div className="p-5 flex flex-col flex-1">
-        <Badge
-          className={`mb-3 uppercase text-xs font-bold tracking-wide self-start ${categoryColors[article.category]}`}
-          data-testid={`badge-category-${article.id}`}
-        >
-          {categoryLabels[article.category]}
-        </Badge>
-        
+      {article.imageUrl && (
+        <div className={`relative overflow-hidden ${featured ? "h-96" : "h-48"}`}>
+          <img
+            src={article.imageUrl}
+            alt={article.title}
+            className="w-full h-full object-cover"
+            data-testid={`img-article-${article.id}`}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+          <Badge
+            className={`absolute top-4 left-4 uppercase text-xs font-bold tracking-wide ${categoryColors[article.category]}`}
+            data-testid={`badge-category-${article.id}`}
+          >
+            {categoryLabels[article.category]}
+          </Badge>
+        </div>
+      )}
+      <div className="p-6">
+        {!article.imageUrl && (
+          <Badge
+            className={`mb-3 uppercase text-xs font-bold tracking-wide ${categoryColors[article.category]}`}
+            data-testid={`badge-category-${article.id}`}
+          >
+            {categoryLabels[article.category]}
+          </Badge>
+        )}
         <h3
-          className="text-white font-semibold mb-3 line-clamp-2 text-lg leading-snug"
+          className={`font-semibold mb-2 line-clamp-2 ${featured ? "text-3xl font-serif" : "text-xl"}`}
           data-testid={`text-title-${article.id}`}
         >
           {article.title}
         </h3>
-        
         <p
-          className="text-gray-400 text-sm mb-4 line-clamp-3 flex-1"
+          className={`text-muted-foreground mb-4 ${featured ? "text-base line-clamp-3" : "text-sm line-clamp-2"}`}
           data-testid={`text-description-${article.id}`}
         >
           {article.description}
         </p>
-        
-        <div className="flex items-center gap-3 text-xs text-gray-500 pt-2 border-t border-gray-700/50">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" />
+            <Calendar className="h-4 w-4" />
             {timeAgo}
           </span>
           {article.source && (
@@ -72,7 +89,7 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
           )}
         </div>
       </div>
-    </div>
+    </Card>
   );
 
   return (
