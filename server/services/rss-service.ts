@@ -54,10 +54,10 @@ const RSS_FEEDS: RSSFeed[] = [
 const RSS2JSON_API = "https://api.rss2json.com/v1/api.json";
 
 const categoryKeywords: Record<NewsCategory, string[]> = {
-  cultura: ["cultura", "arte", "museu", "teatro", "cinema", "exposição", "cultural", "artista", "galeria"],
-  esportes: ["futebol", "flamengo", "fluminense", "vasco", "botafogo", "esporte", "jogo", "campeonato", "copa", "brasileirão"],
-  shows: ["show", "música", "festival", "concerto", "banda", "artista", "musical", "rock", "samba"],
-  "vida-noturna": ["noite", "balada", "bar", "festa", "clube", "boate", "gastronomi", "restaurante"],
+  cultura: ["cultura", "arte", "museu", "teatro", "cinema", "exposição", "cultural", "artista", "galeria", "peça", "espetáculo", "livro", "autor"],
+  esportes: ["futebol", "flamengo", "fluminense", "vasco", "botafogo", "esporte", "jogo", "campeonato", "copa", "brasileirão", "gol", "técnico", "jogador", "partida", "time", "clube"],
+  shows: ["show", "música", "festival", "concerto", "banda", "musical", "rock", "samba", "palco", "turnê", "cantor", "cantora", "apresentação musical"],
+  "vida-noturna": ["balada", "boate", "vida noturna", "noitada", "open bar", "happy hour", "pista de dança", "drinks", "bares e restaurantes", "restaurantes e bares", "gastronomia", "culinária", "degustação", "comer & beber", "comer e beber", "guia de restaurantes"],
   geral: [],
 };
 

@@ -14,6 +14,7 @@ const categories: { id: NewsCategory; label: string; color: string }[] = [
   { id: "esportes", label: "Esportes", color: "esportes" },
   { id: "shows", label: "Shows", color: "shows" },
   { id: "vida-noturna", label: "Vida Noturna", color: "vida-noturna" },
+  { id: "geral", label: "Geral", color: "primary" },
 ];
 
 export function Header() {

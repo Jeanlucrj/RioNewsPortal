@@ -8,11 +8,11 @@ import { Newspaper, Calendar as CalendarIcon } from "lucide-react";
 
 export default function Home() {
   const { data: news, isLoading: newsLoading } = useQuery<NewsArticle[]>({
-    queryKey: ["/api", "news"],
+    queryKey: ["/api/news"],
   });
 
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
-    queryKey: ["/api", "events"],
+    queryKey: ["/api/events"],
   });
 
   const featuredNews = news?.[0];
