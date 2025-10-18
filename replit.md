@@ -226,12 +226,23 @@ O sistema detecta automaticamente a categoria de cada notícia baseado em palavr
   - Registro público desabilitado (apenas admins criam contas)
   - Script de criação de admin inicial
   - SameSite cookie protection contra CSRF
+- **CMS de Notícias (CRUD Completo)** ✨
+  - Backend: 4 rotas protegidas (GET/POST/PUT/DELETE /api/admin/news)
+  - Validação Zod completa para create/update
+  - Storage methods com partial merge updates
+  - Draft/publish separation seguro (404 público, visível admin)
+  - Frontend: Página /admin com lista de notícias e formulário
+  - UI completa: Table, Dialog, Form, Badges coloridos por categoria
+  - TanStack Query para mutations e cache invalidation
+  - Botões: criar, editar, deletar, toggle draft/publish
+  - Proteção de rota com autenticação
+  - Apenas artigos manuais (isManual=true) podem ser editados/deletados
 
 ### 🚧 Em Progresso
-- CMS para gerenciar notícias e eventos
 - Sistema de comentários
 - Newsletter
 - Notificações push
+- CMS de Eventos (painel administrativo)
 
 ### 📋 Planejado
 - Integração com Mapa da Cultura API (Ministério da Cultura)

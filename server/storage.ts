@@ -303,11 +303,11 @@ export class MemStorage implements IStorage {
     };
   }
 
-  async getAllNewsForAdmin(category?: NewsCategory): Promise<NewsArticle[]> {
+  async getAllNewsForAdmin(category?: NewsCategory): Promise<any[]> {
     let query = db.select().from(newsArticlesTable).orderBy(desc(newsArticlesTable.publishedAt));
     const allNews = await query;
     
-    const mappedNews: NewsArticle[] = allNews.map((article: any) => ({
+    const mappedNews = allNews.map((article: any) => ({
       id: article.id,
       title: article.title,
       description: article.description,
@@ -318,10 +318,12 @@ export class MemStorage implements IStorage {
       publishedAt: article.publishedAt.toISOString(),
       url: article.url,
       author: article.author || undefined,
+      isDraft: article.isDraft,
+      isManual: article.isManual,
     }));
 
     if (category) {
-      return mappedNews.filter(n => n.category === category);
+      return mappedNews.filter((n: any) => n.category === category);
     }
 
     return mappedNews;

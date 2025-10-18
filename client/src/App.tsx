@@ -8,6 +8,7 @@ import Category from "@/pages/category";
 import Article from "@/pages/article";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 // Protected route wrapper
@@ -55,7 +56,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/admin">
-        <ProtectedRoute component={AdminPlaceholder} />
+        <ProtectedRoute component={Admin} />
       </Route>
       <Route path="/categoria/:category" component={Category} />
       <Route path="/noticia/:id" component={Article} />
