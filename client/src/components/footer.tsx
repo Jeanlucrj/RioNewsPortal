@@ -10,7 +10,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="font-serif text-2xl font-bold mb-4 text-primary">
-              Rio Notícias
+              Diário do Carioca
             </h3>
             <p className="text-sm text-muted-foreground">
               Seu portal de notícias sobre cultura, esportes, shows e vida noturna no Rio de Janeiro.
@@ -76,7 +76,7 @@ export function Footer() {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Rio Notícias. Todos os direitos reservados.</p>
+          <p>&copy; {new Date().getFullYear()} Diário do Carioca. Todos os direitos reservados.</p>
         </div>
       </div>
     </footer>

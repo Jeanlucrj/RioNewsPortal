@@ -1,4 +1,4 @@
-# Rio Notícias - Portal de Notícias do Rio de Janeiro
+# Diário do Carioca - Portal de Notícias do Rio de Janeiro
 
 ## Visão Geral
 Portal de notícias completo focado no Rio de Janeiro, cobrindo cultura, esportes, shows e vida noturna. O projeto integra APIs gratuitas para fornecer conteúdo atualizado em tempo real.

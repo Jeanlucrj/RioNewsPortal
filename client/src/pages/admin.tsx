@@ -95,7 +95,7 @@ export default function Admin() {
       imageUrl: "",
       category: "geral",
       author: user?.name || "",
-      source: "Rio Notícias",
+      source: "Diário do Carioca",
       url: "",
       isDraft: false,
     },
@@ -221,7 +221,7 @@ export default function Admin() {
       imageUrl: "",
       category: "geral",
       author: user?.name || "",
-      source: "Rio Notícias",
+      source: "Diário do Carioca",
       url: "",
       isDraft: false,
     });

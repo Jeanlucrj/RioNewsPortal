@@ -58,7 +58,7 @@ export default function Login() {
               <Newspaper className="w-6 h-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Rio Notícias - Admin</CardTitle>
+          <CardTitle className="text-2xl">Diário do Carioca - Admin</CardTitle>
           <CardDescription>
             Enter your credentials to access the admin panel
           </CardDescription>
