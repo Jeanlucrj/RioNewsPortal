@@ -30,6 +30,8 @@ export function EventCard({ event }: EventCardProps) {
   const eventDate = new Date(event.date);
   const day = format(eventDate, "dd", { locale: ptBR });
   const month = format(eventDate, "MMM", { locale: ptBR }).toUpperCase();
+  const year = format(eventDate, "yyyy", { locale: ptBR });
+  const fullDate = format(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
   return (
     <Card
@@ -38,12 +40,15 @@ export function EventCard({ event }: EventCardProps) {
     >
       <div className="flex gap-4 p-6">
         <div className="flex-shrink-0">
-          <div className="w-16 h-16 bg-accent rounded-md flex flex-col items-center justify-center">
+          <div className="w-20 h-20 bg-accent rounded-md flex flex-col items-center justify-center">
             <span className="text-2xl font-bold" data-testid={`text-event-day-${event.id}`}>
               {day}
             </span>
-            <span className="text-xs text-muted-foreground" data-testid={`text-event-month-${event.id}`}>
+            <span className="text-xs text-muted-foreground font-medium" data-testid={`text-event-month-${event.id}`}>
               {month}
+            </span>
+            <span className="text-xs text-muted-foreground mt-0.5" data-testid={`text-event-year-${event.id}`}>
+              {year}
             </span>
           </div>
         </div>
@@ -83,12 +88,10 @@ export function EventCard({ event }: EventCardProps) {
           </p>
 
           <div className="space-y-1 text-sm text-muted-foreground">
-            {event.time && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span data-testid={`text-event-time-${event.id}`}>{event.time}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span data-testid={`text-event-fulldate-${event.id}`}>{fullDate}{event.time && ` às ${event.time}`}</span>
+            </div>
             {event.venue && (
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
