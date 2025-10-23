@@ -53,13 +53,13 @@ export default function Home() {
                       Destaque
                     </span>
                     <h2
-                      className="text-4xl md:text-5xl lg:text-6xl font-bold font-serif text-white mb-4 leading-tight"
+                      className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif text-white mb-4 leading-tight line-clamp-4"
                       data-testid="text-featured-title"
                     >
                       {featuredNews.title}
                     </h2>
                     <p
-                      className="text-lg text-white/90 mb-6 line-clamp-3"
+                      className="text-base md:text-lg text-white/90 mb-6 line-clamp-2 md:line-clamp-3"
                       data-testid="text-featured-description"
                     >
                       {featuredNews.description}
