@@ -35,31 +35,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   })();
 
-  // Auto-seed mock events on server start (if database is empty or events are outdated)
-  (async () => {
-    try {
-      const existingEvents = await storage.getEvents();
-      
-      // Check if we have events and if the oldest event is in the past
-      if (existingEvents.length > 0) {
-        const hasOutdatedEvents = existingEvents.some(event => new Date(event.date) < new Date());
-        
-        if (hasOutdatedEvents) {
-          console.log("🗑️  Removing outdated mock events...");
-          await storage.clearAllEvents();
-          console.log("🎭 Re-seeding with fresh mock events...");
-          await eventsService.seedMockEvents();
-        } else {
-          console.log(`📅 Database has ${existingEvents.length} valid events`);
-        }
-      } else {
-        console.log("🎭 Seeding mock events to database...");
-        await eventsService.seedMockEvents();
-      }
-    } catch (error) {
-      console.error("❌ Error seeding events:", error);
-    }
-  })();
+  // Note: Mock events disabled - Use POST /api/events/sync to fetch real events from Sympla/Eventbrite
+  // Or configure valid SYMPLA_API_KEY and EVENTBRITE_API_KEY secrets and call the sync endpoint
 
   // Auto-cleanup old news (>15 days) on server start
   (async () => {
