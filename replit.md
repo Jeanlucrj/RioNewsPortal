@@ -51,7 +51,15 @@ The design is mobile-first and fully responsive, featuring a dark mode as the de
     - **Admin:** CRUD for news, clear cache.
 - **Frontend Routes:** Homepage, Login, Register, Admin panel, Category pages, Article pages, 404.
 - **Automatic Categorization:** News articles are categorized based on keywords in title/description, with feed-provided category taking precedence. A blacklist prevents miscategorization of sensitive topics.
-- **Events Synchronization:** `POST /api/events/sync` fetches from Sympla and Eventbrite, persists to DB via UPSERT, and invalidates cache. Data is always served from the database, with mock data as a fallback only when the database is empty.
+- **Events System:**
+    - **Auto-seed:** On server startup, if events table is empty, 8 realistic mock events are automatically seeded to database (2 cultura, 2 esportes, 2 shows, 2 vida-noturna).
+    - **Mock events:** Cover venues like CCBB, Maracanã, Vivo Rio, Arcos da Lapa, with realistic pricing and dates.
+    - **API integration:** `POST /api/events/sync` fetches from Sympla and Eventbrite when API keys are configured, otherwise uses seeded mock data.
+    - **Database-first:** All events served from PostgreSQL database, ensuring consistency and persistence.
+- **Automatic Cleanup:**
+    - **News retention:** On server startup, automatically deletes RSS-sourced news articles older than 15 days to prevent database bloat.
+    - **Manual articles preserved:** Only non-manual articles (is_manual = false) are deleted during cleanup.
+    - **Cache invalidation:** Cache is cleared after cleanup to ensure fresh data.
 - **Login Session:** Adjusted `sameSite: "lax"` and `trust proxy` for production environments to ensure cookie functionality.
 
 ## External Dependencies
