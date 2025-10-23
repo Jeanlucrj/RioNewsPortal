@@ -15,6 +15,7 @@ export interface IStorage {
   setCachedEvents(events: Event[]): Promise<void>;
   clearCache(): Promise<void>;
   clearEventsCache(): Promise<void>;
+  clearAllEvents(): Promise<number>;
   
   saveEvents(events: Event[]): Promise<number>;
   getEvents(category?: NewsCategory): Promise<Event[]>;
@@ -172,6 +173,13 @@ export class MemStorage implements IStorage {
     }
 
     return mappedEvents;
+  }
+
+  async clearAllEvents(): Promise<number> {
+    const result = await db.delete(eventsTable);
+    await this.clearEventsCache();
+    console.log("🗑️  Cleared all events from database");
+    return 0;
   }
 
   async saveNews(articles: NewsArticle[]): Promise<number> {
