@@ -2,7 +2,7 @@ import { type User, type InsertUser, type NewsArticle, type Event, type NewsCate
 import { randomUUID } from "crypto";
 import { db } from "../db/index.js";
 import { events as eventsTable, newsArticles as newsArticlesTable } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -26,6 +26,7 @@ export interface IStorage {
   createNewsArticle(article: any): Promise<NewsArticle>;
   updateNewsArticle(id: string, article: any): Promise<NewsArticle>;
   deleteNewsArticle(id: string): Promise<boolean>;
+  cleanupOldNews(daysOld?: number): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -375,6 +376,28 @@ export class MemStorage implements IStorage {
   async deleteNewsArticle(id: string): Promise<boolean> {
     const result = await db.delete(newsArticlesTable).where(eq(newsArticlesTable.id, id));
     return true;
+  }
+
+  async cleanupOldNews(daysOld: number = 15): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    
+    // Delete only non-manual articles older than cutoff date
+    const result = await db.execute(
+      sql`DELETE FROM ${newsArticlesTable} 
+          WHERE "publishedAt" < ${cutoffDate.toISOString()} 
+          AND "isManual" = false
+          RETURNING id`
+    );
+    
+    const deletedCount = Array.isArray(result) ? result.length : 0;
+    
+    if (deletedCount > 0) {
+      console.log(`🗑️  Deleted ${deletedCount} news articles older than ${daysOld} days`);
+      await this.clearCache();
+    }
+    
+    return deletedCount;
   }
 }
 
