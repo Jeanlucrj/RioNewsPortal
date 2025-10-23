@@ -62,13 +62,16 @@ export class EventbriteService {
     }
 
     try {
-      const response = await axios.get(`${EVENTBRITE_BASE_URL}/users/me/owned_events/`, {
+      // Search for public events in Rio de Janeiro
+      const response = await axios.get(`${EVENTBRITE_BASE_URL}/events/search/`, {
         headers: {
           'Authorization': `Bearer ${EVENTBRITE_TOKEN}`,
         },
         params: {
-          expand: 'venue,ticket_availability',
-          status: 'live',
+          'location.address': 'Rio de Janeiro, Brazil',
+          'location.within': '50km',
+          'expand': 'venue,ticket_availability',
+          'sort_by': 'date',
         },
       });
 
