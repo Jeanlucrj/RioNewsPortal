@@ -21,6 +21,20 @@ export class EventsService {
     return this.getMockEvents(category);
   }
 
+  async seedMockEvents(): Promise<number> {
+    console.log("Seeding mock events to database...");
+    const mockEvents = this.getMockEvents();
+    
+    if (mockEvents.length > 0) {
+      const savedCount = await storage.saveEvents(mockEvents);
+      await storage.clearEventsCache();
+      console.log(`✅ Seeded ${savedCount} mock events to database`);
+      return savedCount;
+    }
+    
+    return 0;
+  }
+
   async syncExternalEvents(): Promise<{ sympla: number; eventbrite: number; total: number; saved: number }> {
     console.log("Starting external events sync...");
     
