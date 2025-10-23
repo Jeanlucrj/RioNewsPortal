@@ -385,8 +385,8 @@ export class MemStorage implements IStorage {
     // Delete only non-manual articles older than cutoff date
     const result = await db.execute(
       sql`DELETE FROM ${newsArticlesTable} 
-          WHERE "publishedAt" < ${cutoffDate.toISOString()} 
-          AND "isManual" = false
+          WHERE "published_at" < ${cutoffDate.toISOString()} 
+          AND "is_manual" = false
           RETURNING id`
     );
     

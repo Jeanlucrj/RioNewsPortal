@@ -35,6 +35,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   })();
 
+  // Auto-seed mock events on server start (if database is empty)
+  (async () => {
+    try {
+      const existingEvents = await storage.getEvents();
+      if (existingEvents.length === 0) {
+        console.log("🎭 Seeding mock events to database...");
+        await eventsService.seedMockEvents();
+      } else {
+        console.log(`📅 Database already has ${existingEvents.length} events`);
+      }
+    } catch (error) {
+      console.error("❌ Error seeding events:", error);
+    }
+  })();
+
+  // Auto-cleanup old news (>15 days) on server start
+  (async () => {
+    try {
+      console.log("🗑️  Cleaning up old news articles...");
+      const deletedCount = await storage.cleanupOldNews(15);
+      if (deletedCount === 0) {
+        console.log("✅ No old articles to clean up");
+      }
+    } catch (error) {
+      console.error("❌ Error cleaning up old news:", error);
+    }
+  })();
+
   // ========== AUTH ROUTES ==========
   
   // Register new user (DISABLED - Only admins can create accounts via CMS)
