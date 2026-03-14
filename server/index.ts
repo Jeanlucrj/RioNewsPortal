@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import passport from "./passport-config";
@@ -5,8 +6,9 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+export default app;
 
-// Trust proxy - necessário para apps atrás de proxy reverso (Replit)
+// Trust proxy - necessário para apps atrás de proxy reverso (Replit/Vercel)
 app.set('trust proxy', 1);
 
 app.use(express.json());
@@ -26,7 +28,7 @@ app.use(
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      sameSite: "lax", // "lax" funciona melhor em produção que "strict"
+      sameSite: "lax",
     },
   })
 );
@@ -73,28 +75,23 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
+    // Don't throw the error in production to prevent function crash
+    console.error(err);
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  // Only start the server if we are NOT on Vercel
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+    const port = parseInt(process.env.PORT || '5008', 10);
+    server.listen({
+      port,
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  }
 })();
