@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import passport from "./passport-config";
+import passport from "./passport-config.js";
 import { authService } from "./services/auth-service.js";
 import { storage } from "./storage.js";
 import { NewsService } from "./services/news-service.js";
@@ -23,33 +23,40 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auto-sync RSS feeds on server start
-  (async () => {
-    try {
-      console.log("🔄 Auto-syncing RSS feeds to database...");
-      const articles = await rssService.fetchAllRSSFeeds();
-      const savedCount = await storage.saveNews(articles);
-      console.log(`✅ Synced ${savedCount} RSS articles to database`);
-    } catch (error) {
-      console.error("❌ Failed to auto-sync RSS feeds:", error);
-    }
-  })();
+  // Perform background tasks only in local development or when explicitly triggered
+  if (process.env.NODE_ENV !== "production" || process.env.VITE_DEV_SYNC === "true") {
+    // Auto-sync RSS feeds on server start
+    (async () => {
+      try {
+        console.log("🔄 Auto-syncing RSS feeds...");
+        const articles = await rssService.fetchAllRSSFeeds();
+        await storage.saveNews(articles);
+      } catch (error) {
+        console.error("❌ Failed to auto-sync RSS feeds:", error);
+      }
+    })();
 
-  // Auto-sync and cleanup events on server start
-  (async () => {
-    try {
-      console.log("🔄 Starting startup events maintenance...");
-      // Cleanup events older than 1 day before syncing new ones
-      const cleanedCount = await storage.cleanupOldEvents(1);
-      console.log(`🧹 Cleaned ${cleanedCount} past events from database`);
+    // Auto-sync and cleanup events on server start
+    (async () => {
+      try {
+        console.log("🔄 Starting startup events maintenance...");
+        await storage.cleanupOldEvents(1);
+        await eventsService.syncExternalEvents();
+      } catch (error) {
+        console.error("❌ Failed to perform startup events maintenance:", error);
+      }
+    })();
 
-      console.log("🔄 Auto-syncing events to database...");
-      const result = await eventsService.syncExternalEvents();
-      console.log(`✅ Synced ${result.saved} events to database`);
-    } catch (error) {
-      console.error("❌ Failed to perform startup events maintenance:", error);
-    }
-  })();
+    // Auto-cleanup old news on server start
+    (async () => {
+      try {
+        console.log("🗑️  Cleaning up old news articles...");
+        await storage.cleanupOldNews(15);
+      } catch (error) {
+        console.error("❌ Error cleaning up old news:", error);
+      }
+    })();
+  }
 
   // Periodic cleanup for both news and events
   setInterval(async () => {
