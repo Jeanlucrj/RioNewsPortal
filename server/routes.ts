@@ -35,6 +35,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   })();
 
+  // Auto-sync and cleanup events on server start
+  (async () => {
+    try {
+      console.log("🔄 Starting startup events maintenance...");
+      // Cleanup events older than 1 day before syncing new ones
+      const cleanedCount = await storage.cleanupOldEvents(1);
+      console.log(`🧹 Cleaned ${cleanedCount} past events from database`);
+
+      console.log("🔄 Auto-syncing events to database...");
+      const result = await eventsService.syncExternalEvents();
+      console.log(`✅ Synced ${result.saved} events to database`);
+    } catch (error) {
+      console.error("❌ Failed to perform startup events maintenance:", error);
+    }
+  })();
+
+  // Periodic cleanup for both news and events
+  setInterval(async () => {
+    try {
+      await storage.cleanupOldNews(15);
+      await storage.cleanupOldEvents(2); // Keep events for 2 days just in case, but getEvents will filter
+    } catch (error) {
+      console.error("❌ Failed to perform periodic cleanup:", error);
+    }
+  }, 12 * 60 * 60 * 1000); // Every 12 hours
+
   // Note: Mock events disabled - Use POST /api/events/sync to fetch real events from Sympla/Eventbrite
   // Or configure valid SYMPLA_API_KEY and EVENTBRITE_API_KEY secrets and call the sync endpoint
 
@@ -52,12 +78,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   })();
 
   // ========== AUTH ROUTES ==========
-  
+
   // Register new user (DISABLED - Only admins can create accounts via CMS)
   // For initial setup, create first user directly in database or via admin script
   app.post("/api/auth/register", async (req, res) => {
-    res.status(403).json({ 
-      error: "Public registration is disabled. Contact administrator to create an account." 
+    res.status(403).json({
+      error: "Public registration is disabled. Contact administrator to create an account."
     });
   });
 
@@ -65,16 +91,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", (req, res, next) => {
     try {
       const credentials = loginUserSchema.parse(req.body);
-      
+
       passport.authenticate("local", (err: any, user: any, info: any) => {
         if (err) {
           return res.status(500).json({ error: "Authentication error" });
         }
-        
+
         if (!user) {
           return res.status(401).json({ error: info?.message || "Invalid credentials" });
         }
-        
+
         req.login(user, (loginErr) => {
           if (loginErr) {
             return res.status(500).json({ error: "Login failed" });
@@ -116,10 +142,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const articles = await rssService.fetchAllRSSFeeds();
       const savedCount = await storage.saveNews(articles);
-      
+
       // Clear cache after sync
       await storage.clearCache();
-      
+
       res.json({
         total: articles.length,
         saved: savedCount,
@@ -158,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/search", async (req, res) => {
     try {
       const query = req.query.q as string;
-      
+
       if (!query || query.length < 3) {
         return res.json([]);
       }
@@ -166,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const news = await storage.getNews();
 
       const searchTerm = query.toLowerCase();
-      const results = news.filter(article => 
+      const results = news.filter(article =>
         article.title.toLowerCase().includes(searchTerm) ||
         article.description.toLowerCase().includes(searchTerm)
       );
@@ -194,7 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = decodeURIComponent(req.params.id);
       const article = await storage.getNewsById(id);
-      
+
       if (!article) {
         return res.status(404).json({ error: "Article not found" });
       }
@@ -224,10 +250,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const articleData = createNewsArticleSchema.parse(req.body);
       const article = await storage.createNewsArticle(articleData);
-      
+
       // Clear cache after creating
       await storage.clearCache();
-      
+
       res.status(201).json(article);
     } catch (error: any) {
       if (error.name === "ZodError") {
@@ -243,12 +269,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const articleData = updateNewsArticleSchema.parse(req.body);
-      
+
       const article = await storage.updateNewsArticle(id, articleData);
-      
+
       // Clear cache after updating
       await storage.clearCache();
-      
+
       res.json(article);
     } catch (error: any) {
       if (error.name === "ZodError") {
@@ -267,10 +293,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       await storage.deleteNewsArticle(id);
-      
+
       // Clear cache after deleting
       await storage.clearCache();
-      
+
       res.json({ message: "Article deleted successfully" });
     } catch (error) {
       console.error("Error deleting article:", error);
@@ -282,12 +308,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events", async (req, res) => {
     try {
       let events = await storage.getCachedEvents();
-      
+
       if (!events) {
         events = await eventsService.fetchEvents();
         await storage.setCachedEvents(events);
       }
-      
+
       res.json(events);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -323,15 +349,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const teamName = req.params.teamName as "flamengo" | "fluminense" | "vasco" | "botafogo";
       const team = await sportsService.getTeamInfo(teamName);
-      
+
       if (!team) {
         return res.status(404).json({ error: "Team not found" });
       }
-      
+
       res.json(team);
     } catch (error) {
       console.error("Error fetching team info:", error);
       res.status(500).json({ error: "Failed to fetch team info" });
+    }
+  });
+
+  // Fix Gazeta do Povo in Esportes
+  app.post("/api/news/fix-gazeta", async (req, res) => {
+    try {
+      const { db } = await import("../db/index.js");
+      const { newsArticles } = await import("@shared/schema");
+      const { like, and, eq } = await import("drizzle-orm");
+
+      await db.delete(newsArticles)
+        .where(
+          and(
+            like(newsArticles.source, "%Gazeta do Povo%"),
+            eq(newsArticles.category, "esportes")
+          )
+        );
+
+      await storage.clearCache();
+      res.json({ message: "Deleted Gazeta do Povo from Esportes" });
+    } catch (error) {
+      console.error("Error fixing gazeta:", error);
+      res.status(500).json({ error: "Failed to fix" });
     }
   });
 
@@ -368,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       news_cached: !!(await storage.getCachedNews()),
       events_cached: !!(await storage.getCachedEvents()),
     };
-    
+
     const diagnostics: any = {
       timestamp: new Date().toISOString(),
       apis: {
@@ -419,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           timeout: 5000,
         });
-        
+
         if (response.status === 200 && response.data?.results) {
           diagnostics.apis.newsdata.status = "active";
           diagnostics.apis.newsdata.message = `API working - ${response.data.results.length} results`;
@@ -443,7 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const response = await axios.get("https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=Flamengo", {
         timeout: 5000,
       });
-      
+
       if (response.status === 200 && response.data?.teams) {
         diagnostics.apis.thesportsdb.status = "active";
         diagnostics.apis.thesportsdb.message = "API working - free tier active";

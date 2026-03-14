@@ -8,7 +8,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   getCachedNews(): Promise<NewsArticle[] | null>;
   setCachedNews(news: NewsArticle[]): Promise<void>;
   getCachedEvents(): Promise<Event[] | null>;
@@ -16,10 +16,10 @@ export interface IStorage {
   clearCache(): Promise<void>;
   clearEventsCache(): Promise<void>;
   clearAllEvents(): Promise<number>;
-  
+
   saveEvents(events: Event[]): Promise<number>;
   getEvents(category?: NewsCategory): Promise<Event[]>;
-  
+
   saveNews(articles: NewsArticle[]): Promise<number>;
   getNews(category?: NewsCategory): Promise<NewsArticle[]>;
   getNewsById(id: string, includeDrafts?: boolean): Promise<NewsArticle | undefined>;
@@ -54,9 +54,9 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id, 
+    const user: User = {
+      ...insertUser,
+      id,
       createdAt: new Date(),
       role: insertUser.role || 'editor',
       isActive: insertUser.isActive ?? true,
@@ -105,7 +105,7 @@ export class MemStorage implements IStorage {
 
   async saveEvents(events: Event[]): Promise<number> {
     let savedCount = 0;
-    
+
     // Upsert events to database (update if exists, insert if not)
     for (const event of events) {
       const eventData = {
@@ -119,8 +119,8 @@ export class MemStorage implements IStorage {
         venue: event.venue,
         ticketUrl: event.ticketUrl,
         price: event.price,
-        source: event.id.startsWith('sympla-') ? 'sympla' : 
-                event.id.startsWith('eventbrite-') ? 'eventbrite' : 'manual',
+        source: event.id.startsWith('sympla-') ? 'sympla' :
+          event.id.startsWith('eventbrite-') ? 'eventbrite' : 'manual',
         isManual: false,
       };
 
@@ -148,13 +148,18 @@ export class MemStorage implements IStorage {
         console.error(`Error saving event ${event.id}:`, error);
       }
     }
-    
+
     return savedCount;
   }
 
   async getEvents(category?: NewsCategory): Promise<Event[]> {
-    const allEvents = await db.select().from(eventsTable);
-    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const allEvents = await db.select().from(eventsTable)
+      .where(sql`${eventsTable.date} >= ${today.toISOString()}`)
+      .orderBy(eventsTable.date);
+
     const mappedEvents: Event[] = allEvents.map((event: EventDB) => ({
       id: event.id,
       title: event.title,
@@ -175,6 +180,26 @@ export class MemStorage implements IStorage {
     return mappedEvents;
   }
 
+  async cleanupOldEvents(daysOld: number = 2): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+    const result = await db.execute(
+      sql`DELETE FROM ${eventsTable} 
+          WHERE "date" < ${cutoffDate.toISOString()} 
+          RETURNING id`
+    );
+
+    const deletedCount = Array.isArray(result) ? result.length : 0;
+
+    if (deletedCount > 0) {
+      console.log(`🗑️  Deleted ${deletedCount} events older than ${daysOld} days`);
+      await this.clearEventsCache();
+    }
+
+    return deletedCount;
+  }
+
   async clearAllEvents(): Promise<number> {
     const result = await db.delete(eventsTable);
     await this.clearEventsCache();
@@ -184,7 +209,7 @@ export class MemStorage implements IStorage {
 
   async saveNews(articles: NewsArticle[]): Promise<number> {
     let savedCount = 0;
-    
+
     for (const article of articles) {
       const newsData = {
         id: article.id,
@@ -223,7 +248,7 @@ export class MemStorage implements IStorage {
         console.error(`Error saving news article ${article.id}:`, error);
       }
     }
-    
+
     return savedCount;
   }
 
@@ -232,7 +257,7 @@ export class MemStorage implements IStorage {
       .where(eq(newsArticlesTable.isDraft, false))
       .orderBy(desc(newsArticlesTable.publishedAt));
     const allNews = await query;
-    
+
     // Sort to prioritize news with images (for homepage)
     // Articles with imageUrl come first, then sorted by publishedAt
     const sortedNews = allNews.sort((a, b) => {
@@ -240,7 +265,7 @@ export class MemStorage implements IStorage {
       if (!a.imageUrl && b.imageUrl) return 1;
       return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
     });
-    
+
     const mappedNews: NewsArticle[] = sortedNews.map((article: any) => ({
       id: article.id,
       title: article.title,
@@ -263,16 +288,16 @@ export class MemStorage implements IStorage {
 
   async getNewsById(id: string, includeDrafts: boolean = false): Promise<NewsArticle | undefined> {
     let query = db.select().from(newsArticlesTable).where(eq(newsArticlesTable.id, id));
-    
+
     const result = await query;
     if (result.length === 0) return undefined;
-    
+
     const article = result[0];
-    
+
     if (!includeDrafts && article.isDraft) {
       return undefined;
     }
-    
+
     return {
       id: article.id,
       title: article.title,
@@ -323,7 +348,7 @@ export class MemStorage implements IStorage {
   async getAllNewsForAdmin(category?: NewsCategory): Promise<any[]> {
     let query = db.select().from(newsArticlesTable).orderBy(desc(newsArticlesTable.publishedAt));
     const allNews = await query;
-    
+
     const mappedNews = allNews.map((article: any) => ({
       id: article.id,
       title: article.title,
@@ -389,7 +414,7 @@ export class MemStorage implements IStorage {
   async cleanupOldNews(daysOld: number = 15): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-    
+
     // Delete only non-manual articles older than cutoff date
     const result = await db.execute(
       sql`DELETE FROM ${newsArticlesTable} 
@@ -397,14 +422,14 @@ export class MemStorage implements IStorage {
           AND "is_manual" = false
           RETURNING id`
     );
-    
+
     const deletedCount = Array.isArray(result) ? result.length : 0;
-    
+
     if (deletedCount > 0) {
       console.log(`🗑️  Deleted ${deletedCount} news articles older than ${daysOld} days`);
       await this.clearCache();
     }
-    
+
     return deletedCount;
   }
 }
