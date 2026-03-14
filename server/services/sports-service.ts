@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { SportTeam, SportMatch } from "@shared/schema";
+import type { SportTeam, SportMatch } from "../../shared/schema.js";
 
 const THESPORTSDB_API_KEY = process.env.THESPORTSDB_API_KEY || "3";
 const THESPORTSDB_BASE_URL = "https://www.thesportsdb.com/api/v1/json";
@@ -62,7 +62,7 @@ export class SportsService {
         }
       }
 
-      return matches.sort((a, b) => 
+      return matches.sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       ).slice(0, 10);
     } catch (error) {

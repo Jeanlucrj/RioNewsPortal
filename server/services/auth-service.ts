@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db } from "db";
-import { users, type User, type RegisterUser, type LoginUser } from "@shared/schema";
+import { db } from "../../db/index.js";
+import { users, type User, type RegisterUser, type LoginUser } from "../../shared/schema.js";
 
 export class AuthService {
   async register(userData: RegisterUser): Promise<Omit<User, 'password'>> {

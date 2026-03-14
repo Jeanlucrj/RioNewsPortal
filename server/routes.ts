@@ -1,13 +1,13 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import passport from "./passport-config";
-import { authService } from "./services/auth-service";
-import { storage } from "./storage";
-import { NewsService } from "./services/news-service";
-import { SportsService } from "./services/sports-service";
-import { EventsService } from "./services/events-service";
-import { RSSService } from "./services/rss-service";
-import { registerUserSchema, loginUserSchema, createNewsArticleSchema, updateNewsArticleSchema, type NewsCategory } from "@shared/schema";
+import { authService } from "./services/auth-service.js";
+import { storage } from "./storage.js";
+import { NewsService } from "./services/news-service.js";
+import { SportsService } from "./services/sports-service.js";
+import { EventsService } from "./services/events-service.js";
+import { RSSService } from "./services/rss-service.js";
+import { registerUserSchema, loginUserSchema, createNewsArticleSchema, updateNewsArticleSchema, type NewsCategory } from "../shared/schema.js";
 
 const newsService = new NewsService();
 const sportsService = new SportsService();
@@ -365,7 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/news/fix-gazeta", async (req, res) => {
     try {
       const { db } = await import("../db/index.js");
-      const { newsArticles } = await import("@shared/schema");
+      const { newsArticles } = await import("../shared/schema.js");
       const { like, and, eq } = await import("drizzle-orm");
 
       await db.delete(newsArticles)

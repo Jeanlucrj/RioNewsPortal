@@ -1,18 +1,18 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { authService } from "./services/auth-service";
-import type { User } from "@shared/schema";
+import { authService } from "./services/auth-service.js";
+import type { User } from "../shared/schema.js";
 
 // Configure Passport Local Strategy
 passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
       const user = await authService.login({ username, password });
-      
+
       if (!user) {
         return done(null, false, { message: "Invalid username or password" });
       }
-      
+
       return done(null, user);
     } catch (error: any) {
       return done(null, false, { message: error.message });

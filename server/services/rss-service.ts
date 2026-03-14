@@ -1,5 +1,6 @@
 import Parser from "rss-parser";
-import type { NewsArticle, NewsCategory } from "@shared/schema";
+import type { NewsArticle, NewsCategory } from "../../shared/schema.js";
+import { detectCategory } from "../../shared/categorization.js";
 import { randomUUID } from "crypto";
 
 interface RSSFeed {
@@ -60,13 +61,8 @@ const RSS_FEEDS: RSSFeed[] = [
     category: "cultura",
   },
   {
-    name: "Rolling Stone Brasil",
-    url: "https://rollingstone.uol.com.br/feed/",
-    category: "shows",
-  },
-  {
-    name: "Omelete",
-    url: "https://www.omelete.com.br/feed",
+    name: "Agenda Cultural Rio de Janeiro",
+    url: "https://agendaculturalriodejaneiro.blogspot.com/feeds/posts/default",
     category: "shows",
   },
   {
@@ -101,15 +97,6 @@ const RSS_FEEDS: RSSFeed[] = [
   },
 ];
 
-const categoryKeywords: Record<NewsCategory, string[]> = {
-  esportes: ["brasileirão", "série a do", "série b do", "campeonato brasileiro", "campeonato inglês", "campeonato espanhol", "campeonato alemão", "campeonato italiano", "campeonato francês", "premier league", "la liga", "bundesliga", "serie a", "ligue 1", "champions league", "uefa", "libertadores", "copa do brasil", "futebol", "escalação do", "palpite para o jogo", "dicas e palpites", "onde assistir ao vivo", "gol do", "atacante do", "zagueiro", "meia do", "volante do", "técnico do time", "jogador do time", "vitória do", "derrota do", "empate entre", "maracanã terá", "estádio do", "flamengo x", "fluminense x", "vasco x", "botafogo x", "palmeiras x", "corinthians x", "bayern", "barcelona x", "real madrid", "manchester", "arsenal", "chelsea", "liverpool", "time terá desfalque", "suspenso para"],
-  shows: ["show de", "festival de música", "concerto", "banda", "musical", "rock", "samba", "palco", "turnê", "cantor", "cantora", "apresentação musical", "álbum", "single", "música nova", "setlist", "ingressos para o show"],
-  cultura: ["cinema", "filme", "série de tv", "série da", "novela", "capítulo da", "remake de", "teatro", "peça teatral", "exposição", "museu", "galeria de arte", "literatura", "livro", "autor", "escritor", "artista plástico", "ator", "atriz", "documentário", "estreia nos cinemas", "streaming", "final de"],
-  gastronomia: ["restaurante", "restaurantes", "comer e beber", "comer & beber", "gastronomia", "culinária", "chef", "cardápio", "pratos do", "crítica gastronômica", "melhores restaurantes", "degustação", "vinhos", "bar inaugura", "bares do rio", "receita de"],
-  internacional: ["estados unidos", "eua", "china", "europa", "rússia", "ucrânia", "guerra na", "donald trump", "joe biden", "nato", "otan", "união europeia", "house of representatives", "senate", "congresso americano", "parlamento europeu", "putin", "xi jinping", "macron", "diplomacia internacional", "relações exteriores", "g7", "g20", "onu", "organização das nações", "acordo internacional", "cúpula internacional", "eleições nos", "presidente dos", "primeiro-ministro", "chanceler alemã"],
-  geral: [],
-};
-
 export class RSSService {
   private parser: Parser;
 
@@ -126,59 +113,11 @@ export class RSSService {
     });
   }
 
-  private detectCategory(text: string): NewsCategory {
-    const lowerText = text.toLowerCase();
-    
-    // Blacklist geral: Nunca categorizar esses termos
-    const generalBlacklist = [
-      "dr. bumbum",
-      "dr bumbum",
-      "crm cassa",
-      "registro profissional",
-      "cassado no df",
-    ];
-    
-    // Blacklist esportes: Se contém estes termos, NÃO é esporte
-    const sportsBlacklist = [
-      "federal fluminense",
-      "universidade fluminense",
-      "uff",
-      "federal do rio",
-      "ufrj",
-      "uerj",
-    ];
-    
-    const hasGeneralBlacklist = generalBlacklist.some(term => lowerText.includes(term));
-    if (hasGeneralBlacklist) {
-      return "geral";
-    }
-    
-    const hasBlacklistedTerm = sportsBlacklist.some(term => lowerText.includes(term));
-    
-    // Ordem de prioridade: esportes primeiro para evitar conflitos
-    const priorityOrder: NewsCategory[] = ["esportes", "internacional", "shows", "cultura", "gastronomia"];
-    
-    for (const category of priorityOrder) {
-      // Pula esportes se tem termo blacklisted
-      if (category === "esportes" && hasBlacklistedTerm) {
-        continue;
-      }
-      
-      const keywords = categoryKeywords[category];
-      if (keywords.some(keyword => lowerText.includes(keyword))) {
-        return category;
-      }
-    }
-    
-    return "geral";
-  }
-
   private stripHtml(html: string): string {
-    // Remove HTML tags
     return html.replace(/<[^>]*>/g, "").trim();
   }
 
-  async fetchRSSFeed(feedUrl: string, feedName: string, feedCategory?: NewsCategory): Promise<NewsArticle[]> {
+  async fetchRSSFeed(feedUrl: string, feedName: string, _feedCategory?: NewsCategory): Promise<NewsArticle[]> {
     try {
       const feed = await this.parser.parseURL(feedUrl);
 
@@ -188,30 +127,38 @@ export class RSSService {
       }
 
       const articles: NewsArticle[] = feed.items
-        .slice(0, 10) // Limit to 10 articles per feed
         .filter((item: any) => item.title && item.link)
         .map((item: any) => {
-          const description = this.stripHtml(item.contentSnippet || item.content || item.summary || "");
-          
-          // Use feed category if specified and not "geral", otherwise detect
-          let category: NewsCategory;
-          if (feedCategory && feedCategory !== "geral") {
-            category = feedCategory;
-            console.log(`Using feed category "${feedCategory}" for article: ${item.title.substring(0, 50)}...`);
-          } else {
-            category = this.detectCategory(item.title + " " + description);
-          }
-          
+          let htmlContent = item['content:encoded'] || item.content || item.summary || "";
+          const description = this.stripHtml(item.contentSnippet || htmlContent);
+
+          // Detect category using new hybrid logic
+          // Pass categories array if available
+          const externalCategories = Array.isArray(item.categories) ? item.categories : [];
+          let category: NewsCategory = detectCategory(
+            item.title,
+            description,
+            feedName,
+            externalCategories
+          );
+
           // Extract image URL from various sources
           let imageUrl = undefined;
-          if (item.enclosure?.url) {
+          if (item.enclosure?.url && (item.enclosure.type?.startsWith('image/') || item.enclosure.url.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
             imageUrl = item.enclosure.url;
           } else if (item['media:content']?.$ && item['media:content'].$.url) {
             imageUrl = item['media:content'].$.url;
           } else if (item['media:thumbnail']?.$ && item['media:thumbnail'].$.url) {
             imageUrl = item['media:thumbnail'].$.url;
+          } else {
+            const imgMatch = /<img[^>]+src=(?:'|")([^'">]+)(?:'|")/i.exec(htmlContent);
+            if (imgMatch && imgMatch[1]) {
+              imageUrl = imgMatch[1];
+            }
           }
-          
+
+          if (!imageUrl) return null;
+
           return {
             id: item.guid || item.link || randomUUID(),
             title: item.title,
@@ -224,9 +171,10 @@ export class RSSService {
             url: item.link,
             author: item.creator || item.author,
           };
-        });
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .slice(0, 10) as NewsArticle[];
 
-      console.log(`Fetched ${articles.length} articles from ${feedName}`);
       return articles;
     } catch (error: any) {
       console.error(`Error fetching RSS feed ${feedName}:`, error.message);
@@ -236,28 +184,19 @@ export class RSSService {
 
   async fetchAllRSSFeeds(): Promise<NewsArticle[]> {
     const allArticles: NewsArticle[] = [];
-
     for (const feed of RSS_FEEDS) {
       const articles = await this.fetchRSSFeed(feed.url, feed.name, feed.category);
       allArticles.push(...articles);
     }
-
     return allArticles;
   }
 
   async syncRSSFeeds(): Promise<{ total: number; bySource: Record<string, number> }> {
-    console.log("Starting RSS feeds sync...");
-    
     const articles = await this.fetchAllRSSFeeds();
-    
-    // Count by source
     const bySource: Record<string, number> = {};
     for (const article of articles) {
       bySource[article.source] = (bySource[article.source] || 0) + 1;
     }
-
-    console.log(`Synced ${articles.length} total articles from RSS feeds`);
-    
     return {
       total: articles.length,
       bySource,

@@ -83,3 +83,15 @@ export function serveStatic(app: Express) {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
+
+export function logRequest(req: any, res: any, next: any) {
+  const start = Date.now();
+  const path = req.path;
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
+    }
+  });
+  next();
+}
