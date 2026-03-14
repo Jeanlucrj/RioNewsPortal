@@ -86,6 +86,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   })();
 
+  // ========== DIAGNOSTIC ROUTES ==========
+  app.get("/api/ping", (req, res) => {
+    res.json({ status: "ok", message: "pong", timestamp: new Date().toISOString() });
+  });
+
   // ========== AUTH ROUTES ==========
 
   // Register new user (DISABLED - Only admins can create accounts via CMS)
@@ -171,9 +176,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const news = await storage.getNews();
       res.json(news);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching news:", error);
-      res.status(500).json({ error: "Failed to fetch news" });
+      // Return mock news if DB is down/error
+      const newsService = new NewsService();
+      const mockNews = await newsService.fetchNews();
+      res.json(mockNews);
     }
   });
 
