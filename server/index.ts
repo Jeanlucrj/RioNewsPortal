@@ -61,8 +61,8 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
       console.log(`🚀 Desenvolvimento rodando em http://localhost:${port}`);
     });
   })();
-} else {
-  // Production / Vercel
+} else if (!process.env.VERCEL) {
+  // Production (non-Vercel)
   serveStatic(app);
 }
 
