@@ -67,11 +67,11 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  const distPath = path.resolve(__dirname, "..", "dist");
 
   if (!fs.existsSync(distPath)) {
     // Vercel output handling
-    const vercelPath = path.resolve(process.cwd(), "dist", "public");
+    const vercelPath = path.resolve(process.cwd(), "dist");
     if (fs.existsSync(vercelPath)) {
       app.use(express.static(vercelPath));
       app.use("*", (_req, res) => {

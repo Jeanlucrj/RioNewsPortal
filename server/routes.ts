@@ -58,15 +58,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })();
   }
 
-  // Periodic cleanup for both news and events
-  setInterval(async () => {
-    try {
-      await storage.cleanupOldNews(15);
-      await storage.cleanupOldEvents(2); // Keep events for 2 days just in case, but getEvents will filter
-    } catch (error) {
-      console.error("❌ Failed to perform periodic cleanup:", error);
-    }
-  }, 12 * 60 * 60 * 1000); // Every 12 hours
+  // No setInterval on Vercel/Production serverless
+  if (process.env.NODE_ENV !== "production") {
+    setInterval(async () => {
+      try {
+        await storage.cleanupOldNews(15);
+        await storage.cleanupOldEvents(2);
+      } catch (error) {
+        console.error("❌ Failed to perform periodic cleanup:", error);
+      }
+    }, 12 * 60 * 60 * 1000); // Every 12 hours
+  }
 
   // Note: Mock events disabled - Use POST /api/events/sync to fetch real events from Sympla/Eventbrite
   // Or configure valid SYMPLA_API_KEY and EVENTBRITE_API_KEY secrets and call the sync endpoint
