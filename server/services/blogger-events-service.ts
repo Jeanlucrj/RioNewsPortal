@@ -1,6 +1,6 @@
 import axios from "axios";
-import type { Event, NewsCategory } from "@shared/schema";
-import { detectCategory } from "@shared/categorization";
+import type { Event, NewsCategory } from "../../shared/schema.js";
+import { detectCategory } from "../../shared/categorization.js";
 import { randomUUID } from "crypto";
 
 const BLOGGER_FEED_URL = "https://agendaculturalriodejaneiro.blogspot.com/feeds/posts/default?alt=json";

@@ -1,17 +1,10 @@
 import axios from "axios";
-import type { NewsArticle, NewsCategory } from "@shared/schema";
+import type { NewsArticle, NewsCategory } from "../../shared/schema.js";
+import { detectCategory } from "../../shared/categorization.js";
 import { randomUUID } from "crypto";
 
 const NEWSDATA_API_KEY = process.env.NEWSDATA_API_KEY;
 const NEWSDATA_BASE_URL = "https://newsdata.io/api/1/news";
-
-const categoryKeywords: Record<NewsCategory, string[]> = {
-  cultura: ["cultura", "arte", "museu", "teatro", "cinema", "exposição"],
-  esportes: ["futebol", "flamengo", "fluminense", "vasco", "botafogo", "esporte", "jogo", "campeonato"],
-  shows: ["show", "música", "festival", "concerto", "banda", "artista"],
-  "vida-noturna": ["noite", "balada", "bar", "festa", "clube"],
-  geral: [],
-};
 
 export class NewsService {
   async fetchNews(category?: NewsCategory): Promise<NewsArticle[]> {
@@ -21,55 +14,47 @@ export class NewsService {
     }
 
     try {
-      const keywords = category && category !== "geral" 
-        ? categoryKeywords[category].join(",")
-        : undefined;
-
       const params: any = {
         apikey: NEWSDATA_API_KEY,
         country: "br",
         language: "pt",
-        q: keywords || "rio de janeiro",
+        q: category && category !== "geral" ? category : "rio de janeiro",
       };
 
       const response = await axios.get(NEWSDATA_BASE_URL, { params });
 
-      // API successful - return results even if empty
       if (response.data && response.data.results) {
-        // Filter out malformed articles (missing title or link) before mapping
-        const validResults = response.data.results.filter((item: any) => 
-          item.title && (item.link || item.article_id)
-        );
-        
+        const blacklist = ["rolling stone", "omelete", "revista rolling stone"];
+        const validResults = response.data.results.filter((item: any) => {
+          const hasTitleAndLink = item.title && (item.link || item.article_id);
+          const source = (item.source_name || item.source_id || "").toLowerCase();
+          const isBlacklisted = blacklist.some(term => source.includes(term));
+          return hasTitleAndLink && !isBlacklisted;
+        });
+
         const articles = validResults.map((item: any) => this.mapToNewsArticle(item, category));
-        
-        // If API returned empty, return empty array (real-time data, just no results)
-        // Only use mocks when API fails, not when it succeeds with no results
-        if (articles.length === 0) {
-          console.log(`API working but returned 0 valid results for category ${category}`);
-        }
-        
         return articles;
       }
 
-      // API response malformed
-      console.log(`Invalid API response for category ${category}, using mock data`);
       return this.getMockNews(category);
     } catch (error: any) {
-      // Only use mocks on real errors (network, auth, etc)
-      const status = error.response?.status;
-      if (status === 401) {
-        console.error("NewsData.io API key invalid or expired (401), using mock data");
-      } else {
-        console.error("Error fetching news from NewsData.io:", error.message || error);
-      }
+      console.error("Error fetching news from NewsData.io:", error.message || error);
       return this.getMockNews(category);
     }
   }
 
   private mapToNewsArticle(apiData: any, category?: NewsCategory): NewsArticle {
-    const detectedCategory = category || this.detectCategory(apiData.title + " " + apiData.description);
-    
+    // Pass API provided categories to help detection
+    const externalCategories = Array.isArray(apiData.category) ? apiData.category :
+      (typeof apiData.category === 'string' ? [apiData.category] : []);
+
+    const detectedCategory = category || detectCategory(
+      apiData.title || "",
+      apiData.description || apiData.content || "",
+      apiData.source_name || apiData.source_id,
+      externalCategories
+    );
+
     return {
       id: apiData.article_id || randomUUID(),
       title: apiData.title || "Sem título",
@@ -82,19 +67,6 @@ export class NewsService {
       url: apiData.link || "",
       author: apiData.creator?.[0],
     };
-  }
-
-  private detectCategory(text: string): NewsCategory {
-    const lowerText = text.toLowerCase();
-    
-    for (const [category, keywords] of Object.entries(categoryKeywords)) {
-      if (category === "geral") continue;
-      if (keywords.some(keyword => lowerText.includes(keyword))) {
-        return category as NewsCategory;
-      }
-    }
-    
-    return "geral";
   }
 
   private getMockNews(category?: NewsCategory): NewsArticle[] {

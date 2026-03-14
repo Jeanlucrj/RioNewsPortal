@@ -1,7 +1,7 @@
-import { type User, type InsertUser, type NewsArticle, type Event, type NewsCategory, type EventDB, type InsertEvent } from "@shared/schema";
+import { type User, type InsertUser, type NewsArticle, type Event, type NewsCategory, type EventDB, type InsertEvent } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { db } from "../db/index.js";
-import { events as eventsTable, newsArticles as newsArticlesTable } from "@shared/schema";
+import { events as eventsTable, newsArticles as newsArticlesTable } from "../shared/schema.js";
 import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
@@ -260,7 +260,7 @@ export class MemStorage implements IStorage {
 
     // Sort to prioritize news with images (for homepage)
     // Articles with imageUrl come first, then sorted by publishedAt
-    const sortedNews = allNews.sort((a, b) => {
+    const sortedNews = allNews.sort((a: any, b: any) => {
       if (a.imageUrl && !b.imageUrl) return -1;
       if (!a.imageUrl && b.imageUrl) return 1;
       return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
