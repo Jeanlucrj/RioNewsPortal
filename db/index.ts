@@ -9,7 +9,7 @@ if (!process.env.DATABASE_URL) {
 const connectionString = process.env.DATABASE_URL || "postgresql://stub:stub@localhost:5432/stub";
 const client = postgres(connectionString, {
   max: 1,
-  ssl: { rejectUnauthorized: false },
+  ssl: 'require',
   onnotice: () => { },
 });
 export const db = drizzle(client, { schema });
