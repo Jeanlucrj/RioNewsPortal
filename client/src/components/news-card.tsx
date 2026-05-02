@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import type { NewsArticle } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getDefaultImage } from "@/lib/sports-images";
+import { getDefaultImage } from "@/lib/image-service";
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -19,6 +19,7 @@ const categoryLabels: Record<string, string> = {
   shows: "SHOWS",
   gastronomia: "GASTRONOMIA",
   internacional: "INTERNACIONAL",
+  "vida-noturna": "VIDA NOTURNA",
   geral: "GERAL",
 };
 
@@ -28,6 +29,7 @@ const categoryColors: Record<string, string> = {
   shows: "bg-pink-500 hover:bg-pink-600 text-white border-0",
   gastronomia: "bg-orange-500 hover:bg-orange-600 text-white border-0",
   internacional: "bg-blue-500 hover:bg-blue-600 text-white border-0",
+  "vida-noturna": "bg-indigo-500 hover:bg-indigo-600 text-white border-0",
   geral: "bg-cyan-500 hover:bg-cyan-600 text-white border-0",
 };
 
@@ -55,6 +57,12 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
           alt={article.title}
           className="w-full h-full object-cover"
           data-testid={`img-article-${article.id}`}
+          onError={(e) => {
+            const fallback = `https://loremflickr.com/800/450/rio,brazil,city?lock=${article.id.charCodeAt(0)}`;
+            if ((e.target as HTMLImageElement).src !== fallback) {
+              (e.target as HTMLImageElement).src = fallback;
+            }
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
       </div>

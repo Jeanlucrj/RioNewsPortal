@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, logRequest } from "./vite.js";
@@ -52,14 +53,36 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const server = await routesPromise;
     setupVite(app, server);
 
-    const port = 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reuseAddr: true,
-    }, () => {
-      console.log(`🚀 Desenvolvimento rodando em http://localhost:${port}`);
-    });
+    const preferredPort = Number(process.env.PORT) || 5000;
+
+    const startServer = (port: number) => {
+      const onListening = () => {
+        console.log(`\n🚀 Servidor pronto!`);
+        console.log(`🔗 Acesse: http://localhost:${port}\n`);
+      };
+
+      const onError = (err: any) => {
+        server.removeListener('listening', onListening);
+        if (err.code === 'EADDRINUSE') {
+          console.warn(`⚠️ Porta ${port} em uso, tentando porta ${port + 1}...`);
+          startServer(port + 1);
+        } else {
+          console.error(`🔴 Erro fatal ao iniciar servidor:`, err);
+          process.exit(1);
+        }
+      };
+
+      server.once('listening', onListening);
+      server.once('error', onError);
+
+      server.listen({
+        port,
+        host: "0.0.0.0",
+        reuseAddr: true,
+      });
+    };
+
+    startServer(preferredPort);
   })();
 } else if (!process.env.VERCEL) {
   // Production (non-Vercel)

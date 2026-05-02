@@ -9,10 +9,12 @@ if (!connectionString) {
 }
 
 const client = postgres(connectionString || "postgresql://stub:stub@localhost:5432/stub", {
-  max: 1,
+  max: 3,
   ssl: 'require',
   onnotice: () => { },
-  connect_timeout: 10, // Short timeout for serverless
+  connect_timeout: 5,
+  idle_timeout: 10,
+  max_lifetime: 60,
 });
 
 export const db = drizzle(client, { schema });

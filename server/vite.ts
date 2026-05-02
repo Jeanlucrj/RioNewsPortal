@@ -19,6 +19,41 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+async function injectArticleOG(html: string, articleId: string, req: any): Promise<string> {
+  try {
+    const { storage } = await import("./storage.js");
+    const article = await storage.getNewsById(articleId);
+    if (!article) return html;
+
+    const baseUrl = process.env.SITE_URL || `${req.protocol}://${req.get("host")}`;
+    const pageUrl = `${baseUrl}/noticia/${encodeURIComponent(articleId)}`;
+    const title = article.title.replace(/"/g, "&quot;");
+    const description = (article.description || "").replace(/"/g, "&quot;").slice(0, 200);
+    const image = article.imageUrl || `${baseUrl}/og-default.png`;
+
+    const ogTags = `
+    <meta property="og:title" content="${title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:url" content="${pageUrl}" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="${image}" />
+    <meta property="og:site_name" content="Diário do Carioca" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${title}" />
+    <meta name="twitter:description" content="${description}" />
+    <meta name="twitter:image" content="${image}" />
+    <title>${title} — Diário do Carioca</title>`;
+
+    // Replace existing title + og tags with dynamic ones
+    return html
+      .replace(/<title>[^<]*<\/title>/, "")
+      .replace(/<meta property="og:[^"]*"[^>]*>/g, "")
+      .replace("</head>", `${ogTags}\n  </head>`);
+  } catch {
+    return html;
+  }
+}
+
 export async function setupVite(app: Express, server: Server) {
   // Move all Vite-related imports inside setupVite for production safety
   const { createServer: createViteServer, createLogger } = await import("vite");
@@ -57,6 +92,13 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
+
+      // Inject dynamic Open Graph meta tags for article pages
+      const articleMatch = url.match(/\/noticia\/([^?#]+)/);
+      if (articleMatch) {
+        template = await injectArticleOG(template, decodeURIComponent(articleMatch[1]), req);
+      }
+
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
@@ -73,9 +115,19 @@ export function serveStatic(app: Express) {
     // Vercel output handling
     const vercelPath = path.resolve(process.cwd(), "dist");
     if (fs.existsSync(vercelPath)) {
-      app.use(express.static(vercelPath));
-      app.use("*", (_req, res) => {
-        res.sendFile(path.resolve(vercelPath, "index.html"));
+      app.use(express.static(vercelPath, { index: false }));
+      app.use("*", async (req, res) => {
+        const indexPath = path.resolve(vercelPath, "index.html");
+        try {
+          let html = await fs.promises.readFile(indexPath, "utf-8");
+          const articleMatch = req.originalUrl.match(/\/noticia\/([^?#]+)/);
+          if (articleMatch) {
+            html = await injectArticleOG(html, decodeURIComponent(articleMatch[1]), req);
+          }
+          res.status(200).set({ "Content-Type": "text/html" }).send(html);
+        } catch {
+          res.sendFile(indexPath);
+        }
       });
       return;
     }
@@ -84,9 +136,19 @@ export function serveStatic(app: Express) {
     return;
   }
 
-  app.use(express.static(distPath));
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use(express.static(distPath, { index: false }));
+  app.use("*", async (req, res) => {
+    const indexPath = path.resolve(distPath, "index.html");
+    try {
+      let html = await fs.promises.readFile(indexPath, "utf-8");
+      const articleMatch = req.originalUrl.match(/\/noticia\/([^?#]+)/);
+      if (articleMatch) {
+        html = await injectArticleOG(html, decodeURIComponent(articleMatch[1]), req);
+      }
+      res.status(200).set({ "Content-Type": "text/html" }).send(html);
+    } catch {
+      res.sendFile(indexPath);
+    }
   });
 }
 

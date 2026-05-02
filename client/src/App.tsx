@@ -10,6 +10,7 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
+import TagPage from "@/pages/tag";
 
 // Protected route wrapper
 function ProtectedRoute({ component: Component }: { component: () => JSX.Element }) {
@@ -49,19 +50,34 @@ function AdminPlaceholder() {
   );
 }
 
+import { useLocation } from "wouter";
+import { useEffect } from "react";
+
+function ScrollToTop() {
+  const [pathname] = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/admin">
-        <ProtectedRoute component={Admin} />
-      </Route>
-      <Route path="/categoria/:category" component={Category} />
-      <Route path="/noticia/:id" component={Article} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <ScrollToTop />
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/admin">
+          <ProtectedRoute component={Admin} />
+        </Route>
+        <Route path="/categoria/:category" component={Category} />
+        <Route path="/noticia/:id" component={Article} />
+        <Route path="/tag/:tag" component={TagPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </>
   );
 }
 

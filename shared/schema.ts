@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -53,6 +53,8 @@ export const newsArticles = pgTable("news_articles", {
   author: text("author"),
   isManual: boolean("is_manual").notNull().default(false),
   isDraft: boolean("is_draft").notNull().default(false),
+  views: integer("views").notNull().default(0),
+  tags: json("tags").$type<string[]>().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -152,6 +154,9 @@ export interface NewsArticle {
   publishedAt: string;
   url: string;
   author?: string;
+  views?: number;
+  tags?: string[];
+  isManual?: boolean;
 }
 
 export interface SportTeam {

@@ -23,7 +23,7 @@ export const categoryKeywords: Record<Exclude<NewsCategory, "geral">, string[]> 
         "trump", "biden", "macron", "putin", "xi jinping", "otan", "onu", "diplomacia",
         "chanceler", "itamaraty", "relações exteriores"
     ],
-    "vida-noturna": ["noite", "balada", "festa", "clube", "vida noturna", "boate", "rooftop"],
+    "vida-noturna": ["noite", "balada", "festa", "clube", "vida noturna", "boate", "rooftop", "lapa"],
 };
 
 // Map source/API categories to our local categories

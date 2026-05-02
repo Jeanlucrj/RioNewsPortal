@@ -1,6 +1,7 @@
 import Parser from "rss-parser";
 import type { NewsArticle, NewsCategory } from "../../shared/schema.js";
 import { detectCategory } from "../../shared/categorization.js";
+import { extractTags } from "../../shared/tags.js";
 import { randomUUID } from "crypto";
 
 interface RSSFeed {
@@ -10,6 +11,7 @@ interface RSSFeed {
 }
 
 const RSS_FEEDS: RSSFeed[] = [
+  // === GERAL ===
   {
     name: "G1 Rio de Janeiro",
     url: "https://g1.globo.com/rss/g1/rio-de-janeiro/",
@@ -26,73 +28,48 @@ const RSS_FEEDS: RSSFeed[] = [
     category: "geral",
   },
   {
-    name: "Extra",
-    url: "https://extra.globo.com/noticias/rio-de-janeiro/rss.xml",
-    category: "geral",
-  },
-  {
-    name: "Diário do Rio",
-    url: "https://diariodorio.com/feed/",
-    category: "geral",
-  },
-  {
     name: "Veja Rio",
     url: "https://vejario.abril.com.br/feed/",
     category: "geral",
   },
   {
-    name: "Gazeta do Povo - Últimas Notícias",
+    name: "Gazeta do Povo",
     url: "https://www.gazetadopovo.com.br/feed/rss/ultimas-noticias.xml",
     category: "geral",
   },
-  {
-    name: "Gazeta do Povo - Cultura",
-    url: "https://www.gazetadopovo.com.br/feed/rss/cultura.xml",
-    category: "cultura",
-  },
+  // === ESPORTES ===
   {
     name: "GloboEsporte",
     url: "https://ge.globo.com/rss/ge/futebol/",
     category: "esportes",
   },
+  // === CULTURA ===
   {
     name: "O Globo - Cultura",
     url: "https://oglobo.globo.com/cultura/rss.xml",
     category: "cultura",
   },
   {
+    name: "Gazeta do Povo - Cultura",
+    url: "https://www.gazetadopovo.com.br/feed/rss/cultura.xml",
+    category: "cultura",
+  },
+  // === SHOWS ===
+  {
     name: "Agenda Cultural Rio de Janeiro",
     url: "https://agendaculturalriodejaneiro.blogspot.com/feeds/posts/default",
     category: "shows",
   },
+  // === GASTRONOMIA ===
   {
     name: "Veja Rio - Comer & Beber",
     url: "https://vejario.abril.com.br/comer-e-beber/feed/",
     category: "gastronomia",
   },
-  {
-    name: "G1 - Pop & Arte",
-    url: "https://g1.globo.com/dynamo/pop-arte/rss2.xml",
-    category: "gastronomia",
-  },
-  {
-    name: "G1 - Turismo e Viagem",
-    url: "https://g1.globo.com/dynamo/turismo-e-viagem/rss2.xml",
-    category: "gastronomia",
-  },
+  // === INTERNACIONAL ===
   {
     name: "BBC Brasil",
     url: "https://feeds.bbci.co.uk/portuguese/rss.xml",
-    category: "internacional",
-  },
-  {
-    name: "DW Brasil",
-    url: "https://rss.dw.com/xml/rss-br-all",
-    category: "internacional",
-  },
-  {
-    name: "G1 - Mundo",
-    url: "https://g1.globo.com/dynamo/mundo/rss2.xml",
     category: "internacional",
   },
 ];
@@ -162,14 +139,16 @@ export class RSSService {
           return {
             id: item.guid || item.link || randomUUID(),
             title: item.title,
-            description: description.substring(0, 300),
-            content: description,
+            description: description.substring(0, 300) + (description.length > 300 ? "..." : ""),
+            content: undefined,
             imageUrl,
             category,
             source: feedName,
+            isManual: false,
             publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
             url: item.link,
             author: item.creator || item.author,
+            tags: extractTags(item.title, description),
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null)

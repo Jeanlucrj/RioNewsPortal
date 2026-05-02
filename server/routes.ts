@@ -7,12 +7,89 @@ import { NewsService } from "./services/news-service.js";
 import { SportsService } from "./services/sports-service.js";
 import { EventsService } from "./services/events-service.js";
 import { RSSService } from "./services/rss-service.js";
-import { registerUserSchema, loginUserSchema, createNewsArticleSchema, updateNewsArticleSchema, type NewsCategory } from "../shared/schema.js";
+import { generateArticle } from "./services/ai-editorial-service.js";
+import { registerUserSchema, loginUserSchema, createNewsArticleSchema, updateNewsArticleSchema, type NewsCategory, type NewsArticle } from "../shared/schema.js";
 
 const newsService = new NewsService();
 const sportsService = new SportsService();
 const eventsService = new EventsService();
 const rssService = new RSSService();
+
+// In-memory RSS cache — used when DB is unavailable
+let rssMemCache: NewsArticle[] = [];
+let rssMemCacheTime = 0;
+const RSS_MEM_TTL = 10 * 60 * 1000; // 10 minutes
+
+async function getNewsFromRSSCache(category?: NewsCategory): Promise<NewsArticle[]> {
+  const now = Date.now();
+  if (rssMemCache.length === 0 || now - rssMemCacheTime > RSS_MEM_TTL) {
+    try {
+      console.log("🔄 Refreshing RSS in-memory cache...");
+      rssMemCache = await rssService.fetchAllRSSFeeds();
+      rssMemCacheTime = now;
+      console.log(`✅ RSS cache: ${rssMemCache.length} artigos`);
+    } catch (err) {
+      console.error("❌ RSS cache refresh failed:", err);
+    }
+  }
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const filtered = rssMemCache.filter(a => new Date(a.publishedAt) >= sevenDaysAgo);
+
+  if (!category || category === "geral") return filtered;
+  return filtered.filter(a => a.category === category);
+}
+
+// Categories to rotate through for AI generation
+const AI_CATEGORIES = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna"];
+let aiCategoryIndex = 0;
+
+/**
+ * Automatically generates one AI article per run, rotating through categories.
+ * Skips if GEMINI_API_KEY is not set or if there are no source articles.
+ */
+async function runAIGeneration(trigger: "startup" | "scheduled") {
+  if (!process.env.GEMINI_API_KEY) return;
+
+  const category = AI_CATEGORIES[aiCategoryIndex % AI_CATEGORIES.length];
+  aiCategoryIndex++;
+
+  try {
+    console.log(`🤖 [AI] Gerando artigo automático — categoria: ${category} (${trigger})`);
+
+    // Get source articles from DB for this category
+    let sources = await storage.getNews(category as any, 8, 0);
+    if (sources.length < 2) {
+      sources = await storage.getNews(undefined, 15, 0);
+      sources = sources.filter((a) => a.category === category).slice(0, 8);
+    }
+    if (sources.length === 0) {
+      console.log(`⚠️  [AI] Sem artigos fonte para categoria "${category}" — pulando`);
+      return;
+    }
+
+    const generated = await generateArticle({ category, sourceArticles: sources });
+
+    await storage.createNewsArticle({
+      title: generated.title,
+      description: generated.description,
+      content: generated.content,
+      category: generated.category,
+      tags: generated.tags,
+      source: "Diário do Carioca",
+      author: "Redação",
+      imageUrl: generated.imageUrl,
+      isManual: true,
+      isDraft: false,
+    });
+
+    await storage.clearCache();
+    console.log(`✅ [AI] Artigo publicado: "${generated.title}"`);
+  } catch (error: any) {
+    console.error(`❌ [AI] Falha na geração automática (${category}):`, error.message);
+  }
+}
 
 // Auth middleware
 function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -24,13 +101,26 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Perform background tasks only in local development or when explicitly triggered
-  if (process.env.NODE_ENV !== "production" || process.env.VITE_DEV_SYNC === "true") {
+  // Startup background tasks (RSS, events, and cleanup)
+  // We use a small delay in development to ensure the localhost link is visible first
+  const syncDelay = process.env.NODE_ENV === "production" ? 0 : 2000;
+  
+  setTimeout(() => {
     // Auto-sync RSS feeds on server start
     (async () => {
       try {
         console.log("🔄 Auto-syncing RSS feeds...");
         const articles = await rssService.fetchAllRSSFeeds();
-        await storage.saveNews(articles);
+        // Always populate in-memory cache
+        rssMemCache = articles;
+        rssMemCacheTime = Date.now();
+        console.log(`✅ RSS: ${articles.length} artigos carregados`);
+        // Try to persist to DB (optional)
+        try {
+          await storage.saveNews(articles);
+        } catch {
+          console.warn("⚠️  DB indisponível — usando cache em memória");
+        }
       } catch (error) {
         console.error("❌ Failed to auto-sync RSS feeds:", error);
       }
@@ -56,10 +146,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("❌ Error cleaning up old news:", error);
       }
     })();
-  }
 
-  // No setInterval on Vercel/Production serverless
-  if (process.env.NODE_ENV !== "production") {
+    // AI auto-generation on startup (after RSS is loaded — wait 15s)
+    setTimeout(() => runAIGeneration("startup"), 15_000);
+  }, syncDelay);
+
+  // Periodic tasks — skip on Vercel serverless
+  if (!process.env.VERCEL) {
+    // RSS sync every 30 minutes
+    setInterval(async () => {
+      try {
+        console.log("🔄 [Auto] Sincronizando RSS...");
+        const articles = await rssService.fetchAllRSSFeeds();
+        rssMemCache = articles;
+        rssMemCacheTime = Date.now();
+        try { await storage.saveNews(articles); } catch { /* DB opcional */ }
+        console.log(`✅ [Auto] RSS: ${articles.length} artigos`);
+      } catch (error) {
+        console.error("❌ [Auto] Falha no sync RSS:", error);
+      }
+    }, 30 * 60 * 1000);
+
+    // Cleanup every 12 hours
     setInterval(async () => {
       try {
         await storage.cleanupOldNews(15);
@@ -67,24 +175,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("❌ Failed to perform periodic cleanup:", error);
       }
-    }, 12 * 60 * 60 * 1000); // Every 12 hours
+    }, 12 * 60 * 60 * 1000);
+
+    // AI auto-generation every 1 hour (was 4 hours)
+    setInterval(() => runAIGeneration("scheduled"), 1 * 60 * 60 * 1000);
   }
 
   // Note: Mock events disabled - Use POST /api/events/sync to fetch real events from Sympla/Eventbrite
   // Or configure valid SYMPLA_API_KEY and EVENTBRITE_API_KEY secrets and call the sync endpoint
 
-  // Auto-cleanup old news (>15 days) on server start
-  (async () => {
+  // ========== SITEMAP ROUTES ==========
+  app.get("/sitemap.xml", async (req, res) => {
     try {
-      console.log("🗑️  Cleaning up old news articles...");
-      const deletedCount = await storage.cleanupOldNews(15);
-      if (deletedCount === 0) {
-        console.log("✅ No old articles to clean up");
-      }
+      const articles = await storage.getNews(undefined, 1000, 0);
+      
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://rionews.com.br/</loc>
+    <changefreq>hourly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  ${articles.map(article => `
+  <url>
+    <loc>https://rionews.com.br/noticia/${encodeURIComponent(article.id)}</loc>
+    <lastmod>${new Date(article.publishedAt).toISOString()}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.8</priority>
+  </url>`).join('')}
+</urlset>`;
+
+      res.header("Content-Type", "application/xml");
+      res.send(xml);
     } catch (error) {
-      console.error("❌ Error cleaning up old news:", error);
+      console.error("Erro ao gerar sitemap:", error);
+      res.status(500).send("Erro ao gerar sitemap");
     }
-  })();
+  });
+
+  app.get("/sitemap-news.xml", async (req, res) => {
+    try {
+      // News sitemaps should only include articles from the last 2 days
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      
+      let articles = await storage.getNews(undefined, 100, 0);
+      articles = articles.filter(a => new Date(a.publishedAt) >= twoDaysAgo);
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+  ${articles.map(article => `
+  <url>
+    <loc>https://rionews.com.br/noticia/${encodeURIComponent(article.id)}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>Diário do Carioca</news:name>
+        <news:language>pt-br</news:language>
+      </news:publication>
+      <news:publication_date>${new Date(article.publishedAt).toISOString()}</news:publication_date>
+      <news:title>${article.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</news:title>
+    </news:news>
+  </url>`).join('')}
+</urlset>`;
+
+      res.header("Content-Type", "application/xml");
+      res.send(xml);
+    } catch (error) {
+      console.error("Erro ao gerar sitemap-news:", error);
+      res.status(500).send("Erro ao gerar sitemap-news");
+    }
+  });
+
+  // ========== NEWSLETTER ROUTES ==========
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ error: "E-mail inválido" });
+      }
+      
+      await storage.addNewsletterSubscriber(email);
+      res.json({ message: "Inscrito com sucesso" });
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+      res.status(500).json({ error: "Erro ao processar inscrição" });
+    }
+  });
 
   // ========== DIAGNOSTIC ROUTES ==========
   app.get("/api/ping", (req, res) => {
@@ -151,6 +327,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ========== NEWS ROUTES ==========
 
+  // "Rio Agora" — articles published in the last 2 hours
+  app.get("/api/news/rio-agora", async (req, res) => {
+    try {
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const all = await Promise.race([
+        storage.getNews(),
+        new Promise<never>((_, r) => setTimeout(() => r(new Error("timeout")), 5000)),
+      ]) as NewsArticle[];
+      const fresh = all.filter(a => new Date(a.publishedAt) >= twoHoursAgo).slice(0, 8);
+      res.json(fresh);
+    } catch {
+      const all = await getNewsFromRSSCache();
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      res.json(all.filter(a => new Date(a.publishedAt) >= twoHoursAgo).slice(0, 8));
+    }
+  });
+
   // Sync RSS feeds to database
   app.post("/api/news/sync-rss", async (req, res) => {
     try {
@@ -171,29 +364,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all news from database
+  // Get all news (with optional pagination: ?page=1&limit=12)
   app.get("/api/news", async (req, res) => {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, parseInt(req.query.limit as string) || 12);
+    const offset = (page - 1) * limit;
     try {
-      const news = await storage.getNews();
-      res.json(news);
-    } catch (error: any) {
-      console.error("Error fetching news:", error);
-      // Return mock news if DB is down/error
-      const newsService = new NewsService();
-      const mockNews = await newsService.fetchNews();
-      res.json(mockNews);
+      const dbTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB timeout")), 5000)
+      );
+      const all = await Promise.race([storage.getNews(), dbTimeout]) as NewsArticle[];
+      if (all.length === 0) throw new Error("empty");
+      const total = all.length;
+      const paginated = all.slice(offset, offset + limit);
+      res.json({ news: paginated, total, page, limit });
+    } catch {
+      const all = await getNewsFromRSSCache();
+      const total = all.length;
+      const paginated = all.slice(offset, offset + limit);
+      res.json({ news: paginated, total, page, limit });
     }
   });
 
-  // Get news by category from database
+  // Get news by category (with pagination)
   app.get("/api/news/category/:category", async (req, res) => {
+    const category = req.params.category as NewsCategory;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, parseInt(req.query.limit as string) || 12);
+    const offset = (page - 1) * limit;
+    const sortBy = (req.query.sort as string) === "popular" ? "popular" : "recentes";
     try {
-      const category = req.params.category as NewsCategory;
-      const news = await storage.getNews(category);
+      const dbTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB timeout")), 5000)
+      );
+      let all = await Promise.race([storage.getNews(category), dbTimeout]) as NewsArticle[];
+      if (all.length === 0) throw new Error("empty");
+      if (sortBy === "popular") all = all.sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+      const total = all.length;
+      res.json({ news: all.slice(offset, offset + limit), total, page, limit });
+    } catch {
+      let all = await getNewsFromRSSCache(category);
+      const total = all.length;
+      res.json({ news: all.slice(offset, offset + limit), total, page, limit });
+    }
+  });
+
+  // Most read articles
+  app.get("/api/news/most-read", async (req, res) => {
+    const limit = Math.min(10, parseInt(req.query.limit as string) || 5);
+    try {
+      const news = await storage.getMostRead(limit);
       res.json(news);
-    } catch (error) {
-      console.error("Error fetching news by category:", error);
-      res.status(500).json({ error: "Failed to fetch news" });
+    } catch {
+      const all = await getNewsFromRSSCache();
+      res.json(all.sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, limit));
+    }
+  });
+
+  // Increment article views
+  app.post("/api/news/:id/view", async (req, res) => {
+    try {
+      const id = decodeURIComponent(req.params.id);
+      await storage.incrementViews(id);
+      res.json({ ok: true });
+    } catch {
+      res.json({ ok: false });
+    }
+  });
+
+  // Articles by tag
+  app.get("/api/news/tag/:tag", async (req, res) => {
+    const tag = req.params.tag.toLowerCase();
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, parseInt(req.query.limit as string) || 12);
+    const offset = (page - 1) * limit;
+    try {
+      const all = await Promise.race([
+        storage.getNews(),
+        new Promise<never>((_, r) => setTimeout(() => r(new Error("timeout")), 5000)),
+      ]) as NewsArticle[];
+      const filtered = all.filter(a => a.tags?.includes(tag));
+      res.json({ news: filtered.slice(offset, offset + limit), total: filtered.length, page, limit, tag });
+    } catch {
+      const all = await getNewsFromRSSCache();
+      const filtered = all.filter(a => a.tags?.includes(tag));
+      res.json({ news: filtered.slice(offset, offset + limit), total: filtered.length, page, limit, tag });
     }
   });
 
@@ -321,6 +576,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI article generation
+  app.post("/api/admin/ai/generate", requireAuth, async (req, res) => {
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(503).json({ error: "GEMINI_API_KEY não configurada no servidor" });
+      }
+
+      const { category, tone, focus, articleIds } = req.body as {
+        category: string;
+        tone?: string;
+        focus?: string;
+        articleIds?: string[];
+      };
+
+      if (!category) {
+        return res.status(400).json({ error: "Categoria é obrigatória" });
+      }
+
+      // Fetch source articles from DB
+      let sourceArticles: NewsArticle[];
+      if (articleIds && articleIds.length > 0) {
+        const fetched = await Promise.all(articleIds.map((id) => storage.getNewsById(id)));
+        sourceArticles = fetched.filter(Boolean) as NewsArticle[];
+      } else {
+        sourceArticles = await storage.getNews(category as NewsCategory, 10, 0);
+        if (sourceArticles.length < 2) {
+          // Fallback: get from RSS cache
+          sourceArticles = await storage.getNews(undefined, 15, 0);
+          sourceArticles = sourceArticles.filter((a) => a.category === category).slice(0, 8);
+        }
+      }
+
+      if (sourceArticles.length === 0) {
+        return res.status(400).json({ error: "Nenhum artigo disponível para a categoria selecionada" });
+      }
+
+      const generated = await generateArticle({
+        category,
+        sourceArticles,
+        tone: tone as any,
+        focus,
+      });
+
+      res.json(generated);
+    } catch (error: any) {
+      console.error("AI generation error:", error);
+      res.status(500).json({ error: error.message || "Falha na geração com IA" });
+    }
+  });
+
+  // Save AI-generated article
+  app.post("/api/admin/ai/save", requireAuth, async (req, res) => {
+    try {
+      const { title, description, content, category, tags, isDraft, imageUrl } = req.body;
+
+      if (!title || !description || !category) {
+        return res.status(400).json({ error: "Campos obrigatórios: title, description, category" });
+      }
+
+      const article = await storage.createNewsArticle({
+        title,
+        description,
+        content,
+        category,
+        tags: tags || [],
+        source: "Diário do Carioca",
+        author: (req.user as any)?.name || "Redação",
+        imageUrl,
+        isManual: true,
+        isDraft: isDraft ?? true,
+      });
+
+      await storage.clearCache();
+      res.status(201).json(article);
+    } catch (error: any) {
+      console.error("AI save error:", error);
+      res.status(500).json({ error: "Falha ao salvar artigo" });
+    }
+  });
+
   // Get all events (with caching)
   app.get("/api/events", async (req, res) => {
     try {
@@ -350,14 +685,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get sports matches
+  // Get recent matches
   app.get("/api/sports/matches", async (req, res) => {
     try {
       const matches = await sportsService.getRecentMatches();
+      res.set("Cache-Control", "public, max-age=1800"); // 30 min browser cache
       res.json(matches);
     } catch (error) {
       console.error("Error fetching matches:", error);
       res.status(500).json({ error: "Failed to fetch matches" });
+    }
+  });
+
+  // Get next matches
+  app.get("/api/sports/next", async (req, res) => {
+    try {
+      const matches = await sportsService.getNextMatches();
+      res.set("Cache-Control", "public, max-age=1800");
+      res.json(matches);
+    } catch (error) {
+      console.error("Error fetching next matches:", error);
+      res.status(500).json({ error: "Failed to fetch next matches" });
     }
   });
 
@@ -520,6 +868,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     res.json(diagnostics);
+  });
+
+  // ========== RSS FEED ==========
+  app.get("/rss.xml", async (req, res) => {
+    try {
+      const articles = await storage.getNews(undefined, 50, 0);
+      const baseUrl = process.env.SITE_URL || `${req.protocol}://${req.get("host")}`;
+
+      const items = articles.map(a => {
+        const pubDate = new Date(a.publishedAt).toUTCString();
+        const link = `${baseUrl}/noticia/${encodeURIComponent(a.id)}`;
+        const desc = (a.description || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const title = a.title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return `
+    <item>
+      <title>${title}</title>
+      <link>${link}</link>
+      <description>${desc}</description>
+      <pubDate>${pubDate}</pubDate>
+      <guid isPermaLink="true">${link}</guid>
+      <category>${a.category}</category>
+      ${a.author ? `<author>${a.author}</author>` : ""}
+      ${a.imageUrl ? `<enclosure url="${a.imageUrl}" type="image/jpeg"/>` : ""}
+    </item>`;
+      }).join("");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Diário do Carioca</title>
+    <link>${baseUrl}</link>
+    <description>Portal de Notícias do Rio de Janeiro — Cultura, Esportes, Shows e mais.</description>
+    <language>pt-BR</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml"/>
+    <image>
+      <url>${baseUrl}/favicon.ico</url>
+      <title>Diário do Carioca</title>
+      <link>${baseUrl}</link>
+    </image>${items}
+  </channel>
+</rss>`;
+
+      res.set("Content-Type", "application/rss+xml; charset=utf-8");
+      res.set("Cache-Control", "public, max-age=900"); // 15 min
+      res.send(xml);
+    } catch (error) {
+      res.status(500).send("Erro ao gerar RSS");
+    }
+  });
+
+  // ========== SITEMAP ==========
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      const articles = await storage.getNews(undefined, 500, 0);
+      const baseUrl = process.env.SITE_URL || `${req.protocol}://${req.get("host")}`;
+
+      const categories = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna"];
+
+      type SitemapUrl = { loc: string; priority: string; changefreq: string; lastmod?: string };
+
+      const staticUrls: SitemapUrl[] = [
+        { loc: baseUrl, priority: "1.0", changefreq: "hourly" },
+        ...categories.map(c => ({
+          loc: `${baseUrl}/categoria/${c}`,
+          priority: "0.8",
+          changefreq: "hourly",
+        })),
+      ];
+
+      const articleUrls: SitemapUrl[] = articles.map(a => ({
+        loc: `${baseUrl}/noticia/${encodeURIComponent(a.id)}`,
+        lastmod: new Date(a.publishedAt).toISOString().split("T")[0],
+        priority: "0.6",
+        changefreq: "weekly",
+      }));
+
+      const allUrls = [...staticUrls, ...articleUrls];
+
+      const urlEntries = allUrls.map(u => `
+  <url>
+    <loc>${u.loc}</loc>
+    ${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join("");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urlEntries}
+</urlset>`;
+
+      res.set("Content-Type", "application/xml; charset=utf-8");
+      res.set("Cache-Control", "public, max-age=3600"); // 1 hour
+      res.send(xml);
+    } catch (error) {
+      res.status(500).send("Erro ao gerar sitemap");
+    }
   });
 
   const httpServer = createServer(app);

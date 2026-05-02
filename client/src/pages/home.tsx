@@ -1,23 +1,55 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { NewsCard } from "@/components/news-card";
 import { EventCard } from "@/components/event-card";
+import { Button } from "@/components/ui/button";
 import type { NewsArticle, Event } from "@shared/schema";
-import { Newspaper, Calendar as CalendarIcon } from "lucide-react";
-import { getDefaultImage } from "@/lib/sports-images";
+import { Newspaper, Calendar as CalendarIcon, TrendingUp, ChevronLeft, ChevronRight, Eye, Radio } from "lucide-react";
+import { getDefaultImage } from "@/lib/image-service";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+const PAGE_SIZE = 9;
+
+interface NewsPage {
+  news: NewsArticle[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export default function Home() {
-  const { data: news, isLoading: newsLoading } = useQuery<NewsArticle[]>({
-    queryKey: ["/api/news"],
+  const [page, setPage] = useState(1);
+
+  const { data: rioAgora } = useQuery<NewsArticle[]>({
+    queryKey: ["/api/news/rio-agora"],
+    queryFn: () => fetch("/api/news/rio-agora").then(r => r.json()),
+    refetchInterval: 2 * 60 * 1000, // recheck every 2 min
+  });
+
+  const { data: newsPage, isLoading: newsLoading } = useQuery<NewsPage>({
+    queryKey: ["/api/news", page],
+    queryFn: () => fetch(`/api/news?page=${page}&limit=${PAGE_SIZE}`).then((r) => r.json()),
+  });
+
+  const { data: mostRead } = useQuery<NewsArticle[]>({
+    queryKey: ["/api/news/most-read"],
+    queryFn: () => fetch("/api/news/most-read?limit=5").then((r) => r.json()),
   });
 
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
 
-  const featuredNews = news?.[0];
-  const recentNews = news?.slice(1, 7) || [];
+  const news = newsPage?.news ?? [];
+  const total = newsPage?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const featuredNews = page === 1 ? news[0] : undefined;
+  const gridNews = page === 1 ? news.slice(1) : news;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -34,6 +66,36 @@ export default function Home() {
           </div>
         ) : (
           <>
+            {/* Rio Agora — breaking news strip */}
+            {rioAgora && rioAgora.length > 0 && (
+              <section className="bg-red-600 text-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                      </span>
+                      <Radio className="h-4 w-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Rio Agora</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {rioAgora.slice(0, 4).map((a) => (
+                        <Link
+                          key={a.id}
+                          href={`/noticia/${encodeURIComponent(a.id)}`}
+                          className="text-xs text-white/90 hover:text-white hover:underline line-clamp-1 max-w-xs"
+                        >
+                          {a.title}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Hero — only on first page */}
             {featuredNews && (
               <section className="relative h-[500px] mb-12">
                 <div
@@ -46,50 +108,122 @@ export default function Home() {
                 </div>
                 <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-end pb-12">
                   <div className="max-w-3xl">
-                    <span
-                      className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide rounded mb-4"
-                      data-testid="badge-featured-category"
-                    >
+                    <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide rounded mb-4">
                       Destaque
                     </span>
-                    <h2
-                      className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif text-white mb-4 leading-tight line-clamp-4"
-                      data-testid="text-featured-title"
-                    >
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif text-white mb-4 leading-tight line-clamp-4">
                       {featuredNews.title}
                     </h2>
-                    <p
-                      className="text-base md:text-lg text-white/90 mb-6 line-clamp-2 md:line-clamp-3"
-                      data-testid="text-featured-description"
-                    >
+                    <p className="text-base md:text-lg text-white/90 mb-6 line-clamp-2 md:line-clamp-3">
                       {featuredNews.description}
                     </p>
-                    <a
-                      href={featuredNews.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover-elevate active-elevate-2"
-                      data-testid="button-read-featured"
+                    <Link
+                      href={`/noticia/${encodeURIComponent(featuredNews.id)}`}
+                      className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 transition-colors"
                     >
                       Ler Notícia
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </section>
             )}
 
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Newspaper className="h-6 w-6 text-primary" />
-                <h2 className="text-3xl font-bold font-serif">Notícias Recentes</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recentNews.map((article) => (
-                  <NewsCard key={article.id} article={article} />
-                ))}
-              </div>
-            </section>
+            {/* Main content + Mais Lidas sidebar */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="flex flex-col lg:flex-row gap-8">
 
+                {/* News grid */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Newspaper className="h-6 w-6 text-primary" />
+                    <h2 className="text-3xl font-bold font-serif">Notícias Recentes</h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {gridNews.map((article) => (
+                      <NewsCard key={article.id} article={article} />
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-10">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                        disabled={page === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
+                      </Button>
+                      <div className="flex gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          const p = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
+                          return (
+                            <Button
+                              key={p}
+                              variant={p === page ? "default" : "outline"}
+                              size="sm"
+                              className="w-9"
+                              onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                            >
+                              {p}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                        disabled={page === totalPages}
+                      >
+                        Próxima
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sidebar — Mais Lidas */}
+                {mostRead && mostRead.length > 0 && (
+                  <aside className="lg:w-72 shrink-0">
+                    <div className="sticky top-20">
+                      <div className="flex items-center gap-2 mb-4">
+                        <TrendingUp className="h-5 w-5 text-red-500" />
+                        <h3 className="text-xl font-bold font-serif">Mais Lidas</h3>
+                      </div>
+                      <div className="space-y-4">
+                        {mostRead.map((article, idx) => (
+                          <Link
+                            key={article.id}
+                            href={`/noticia/${encodeURIComponent(article.id)}`}
+                            className="flex gap-3 group"
+                          >
+                            <span className="text-3xl font-bold text-muted-foreground/30 leading-none w-8 shrink-0 mt-1">
+                              {idx + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold leading-snug line-clamp-3 group-hover:text-primary transition-colors">
+                                {article.title}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                <Eye className="h-3 w-3" />
+                                <span>{(article.views ?? 0).toLocaleString("pt-BR")} leituras</span>
+                                <span>·</span>
+                                <span>{formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ptBR })}</span>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </aside>
+                )}
+              </div>
+            </div>
+
+            {/* Events */}
             {events && events.length > 0 && (
               <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="flex items-center gap-3 mb-6">

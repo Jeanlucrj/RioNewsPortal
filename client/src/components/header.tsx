@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useState } from "react";
 import { SearchModal } from "@/components/search-modal";
+import { BreakingNewsTicker } from "@/components/breaking-news-ticker";
+import { WeatherWidget } from "@/components/weather-widget";
+import { SportsScores } from "@/components/sports-scores";
 import type { NewsCategory, User as UserType } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -77,6 +80,7 @@ export function Header() {
             </nav>
 
             <div className="flex items-center gap-2">
+              <WeatherWidget />
               <Button
                 variant="ghost"
                 size="icon"
@@ -112,7 +116,7 @@ export function Header() {
                     <LogOut className="h-5 w-5" />
                   </Button>
                 </>
-              ) : (
+              ) : window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? (
                 <Link href="/login">
                   <Button
                     variant="ghost"
@@ -123,7 +127,7 @@ export function Header() {
                     Login
                   </Button>
                 </Link>
-              )}
+              ) : null}
 
               <Button
                 variant="ghost"
@@ -156,6 +160,7 @@ export function Header() {
           )}
         </div>
       </header>
+      <SportsScores />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );

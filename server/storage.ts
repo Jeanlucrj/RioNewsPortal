@@ -1,8 +1,9 @@
 import { type User, type InsertUser, type NewsArticle, type Event, type NewsCategory, type EventDB, type InsertEvent } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { db } from "../db/index.js";
-import { events as eventsTable, newsArticles as newsArticlesTable } from "../shared/schema.js";
-import { eq, desc, sql } from "drizzle-orm";
+import { events as eventsTable, newsArticles as newsArticlesTable, newsletterSubscribers } from "../shared/schema.js";
+import { eq, desc, sql, and, gte } from "drizzle-orm";
+import { seoService } from "./services/seo-service.js";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -21,13 +22,34 @@ export interface IStorage {
   getEvents(category?: NewsCategory): Promise<Event[]>;
 
   saveNews(articles: NewsArticle[]): Promise<number>;
-  getNews(category?: NewsCategory): Promise<NewsArticle[]>;
+  getNews(category?: NewsCategory, limit?: number, offset?: number): Promise<NewsArticle[]>;
   getNewsById(id: string, includeDrafts?: boolean): Promise<NewsArticle | undefined>;
   getAllNewsForAdmin(category?: NewsCategory): Promise<NewsArticle[]>;
   createNewsArticle(article: any): Promise<NewsArticle>;
   updateNewsArticle(id: string, article: any): Promise<NewsArticle>;
   deleteNewsArticle(id: string): Promise<boolean>;
   cleanupOldNews(daysOld?: number): Promise<number>;
+  incrementViews(id: string): Promise<void>;
+  getMostRead(limit?: number): Promise<NewsArticle[]>;
+  addNewsletterSubscriber(email: string): Promise<void>;
+}
+
+function mapArticle(article: any): NewsArticle {
+  return {
+    id: article.id,
+    title: article.title,
+    description: article.description,
+    content: article.isManual ? (article.content || undefined) : undefined,
+    imageUrl: article.imageUrl || undefined,
+    category: article.category as NewsCategory,
+    source: article.source,
+    publishedAt: article.publishedAt.toISOString(),
+    url: article.url,
+    author: article.author || undefined,
+    views: article.views ?? 0,
+    tags: Array.isArray(article.tags) ? article.tags : [],
+    isManual: article.isManual,
+  };
 }
 
 export class MemStorage implements IStorage {
@@ -224,6 +246,7 @@ export class MemStorage implements IStorage {
         author: article.author || null,
         isManual: false,
         isDraft: false,
+        tags: article.tags ?? [],
       };
 
       try {
@@ -241,6 +264,7 @@ export class MemStorage implements IStorage {
               publishedAt: newsData.publishedAt,
               url: newsData.url,
               author: newsData.author,
+              tags: newsData.tags,
             },
           });
         savedCount++;
@@ -252,38 +276,55 @@ export class MemStorage implements IStorage {
     return savedCount;
   }
 
-  async getNews(category?: NewsCategory): Promise<NewsArticle[]> {
-    let query = db.select().from(newsArticlesTable)
-      .where(eq(newsArticlesTable.isDraft, false))
+  async getNews(category?: NewsCategory, limit?: number, offset?: number): Promise<NewsArticle[]> {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const allNews = await db.select().from(newsArticlesTable)
+      .where(
+        and(
+          eq(newsArticlesTable.isDraft, false),
+          gte(newsArticlesTable.publishedAt, sevenDaysAgo)
+        )
+      )
       .orderBy(desc(newsArticlesTable.publishedAt));
-    const allNews = await query;
 
-    // Sort to prioritize news with images (for homepage)
-    // Articles with imageUrl come first, then sorted by publishedAt
-    const sortedNews = allNews.sort((a: any, b: any) => {
-      if (a.imageUrl && !b.imageUrl) return -1;
-      if (!a.imageUrl && b.imageUrl) return 1;
-      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-    });
+    const filtered = category
+      ? allNews.filter((a: any) => a.category === category)
+      : allNews.sort((a: any, b: any) => {
+          if (a.imageUrl && !b.imageUrl) return -1;
+          if (!a.imageUrl && b.imageUrl) return 1;
+          return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+        });
 
-    const mappedNews: NewsArticle[] = sortedNews.map((article: any) => ({
-      id: article.id,
-      title: article.title,
-      description: article.description,
-      content: article.content || undefined,
-      imageUrl: article.imageUrl || undefined,
-      category: article.category as NewsCategory,
-      source: article.source,
-      publishedAt: article.publishedAt.toISOString(),
-      url: article.url,
-      author: article.author || undefined,
-    }));
+    const paginated = (limit !== undefined)
+      ? filtered.slice(offset ?? 0, (offset ?? 0) + limit)
+      : filtered;
 
-    if (category) {
-      return mappedNews.filter(n => n.category === category);
-    }
+    return paginated.map((article: any) => mapArticle(article));
+  }
 
-    return mappedNews;
+  async incrementViews(id: string): Promise<void> {
+    await db.update(newsArticlesTable)
+      .set({ views: sql`${newsArticlesTable.views} + 1` })
+      .where(eq(newsArticlesTable.id, id));
+  }
+
+  async getMostRead(limit: number = 5): Promise<NewsArticle[]> {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const rows = await db.select().from(newsArticlesTable)
+      .where(
+        and(
+          eq(newsArticlesTable.isDraft, false),
+          gte(newsArticlesTable.publishedAt, sevenDaysAgo)
+        )
+      )
+      .orderBy(desc(newsArticlesTable.views), desc(newsArticlesTable.publishedAt))
+      .limit(limit);
+
+    return rows.map((article: any) => mapArticle(article));
   }
 
   async getNewsById(id: string, includeDrafts: boolean = false): Promise<NewsArticle | undefined> {
@@ -298,18 +339,7 @@ export class MemStorage implements IStorage {
       return undefined;
     }
 
-    return {
-      id: article.id,
-      title: article.title,
-      description: article.description,
-      content: article.content || undefined,
-      imageUrl: article.imageUrl || undefined,
-      category: article.category as NewsCategory,
-      source: article.source,
-      publishedAt: article.publishedAt.toISOString(),
-      url: article.url,
-      author: article.author || undefined,
-    };
+    return mapArticle(article);
   }
 
   async createNewsArticle(articleData: any): Promise<NewsArticle> {
@@ -330,6 +360,11 @@ export class MemStorage implements IStorage {
     };
 
     await db.insert(newsArticlesTable).values(newsData);
+
+    if (!newsData.isDraft) {
+      // Notifica o Google em background (fire and forget)
+      seoService.notifyGoogle(`https://rionews.com.br/noticia/${encodeURIComponent(newsData.id)}`, "URL_UPDATED").catch(console.error);
+    }
 
     return {
       id: newsData.id,
@@ -360,6 +395,7 @@ export class MemStorage implements IStorage {
       publishedAt: article.publishedAt.toISOString(),
       url: article.url,
       author: article.author || undefined,
+      views: article.views ?? 0,
       isDraft: article.isDraft,
       isManual: article.isManual,
     }));
@@ -403,15 +439,28 @@ export class MemStorage implements IStorage {
     if (!updated) {
       throw new Error('Article not found after update');
     }
+
+    if (!updated.isDraft) {
+      seoService.notifyGoogle(`https://rionews.com.br/noticia/${encodeURIComponent(id)}`, "URL_UPDATED").catch(console.error);
+    } else if (current.isDraft === false && updated.isDraft === true) {
+      seoService.notifyGoogle(`https://rionews.com.br/noticia/${encodeURIComponent(id)}`, "URL_DELETED").catch(console.error);
+    }
+
     return updated;
   }
 
   async deleteNewsArticle(id: string): Promise<boolean> {
+    const article = await this.getNewsById(id, true);
     const result = await db.delete(newsArticlesTable).where(eq(newsArticlesTable.id, id));
+    
+    if (article && !article.isDraft) {
+      seoService.notifyGoogle(`https://rionews.com.br/noticia/${encodeURIComponent(id)}`, "URL_DELETED").catch(console.error);
+    }
+    
     return true;
   }
 
-  async cleanupOldNews(daysOld: number = 15): Promise<number> {
+  async cleanupOldNews(daysOld: number = 7): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
@@ -431,6 +480,12 @@ export class MemStorage implements IStorage {
     }
 
     return deletedCount;
+  }
+
+  async addNewsletterSubscriber(email: string): Promise<void> {
+    await db.insert(newsletterSubscribers)
+      .values({ email })
+      .onConflictDoNothing();
   }
 }
 
