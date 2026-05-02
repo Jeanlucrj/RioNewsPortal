@@ -934,6 +934,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "active",
           message: "RSS feeds available - G1 Rio, O Globo, O Dia, Extra, Diário do Rio, Veja Rio",
         },
+        gemini: {
+          name: "Google Gemini AI",
+          configured: !!process.env.GEMINI_API_KEY,
+          status: "unknown",
+          message: "",
+        },
       },
       cache: cacheStatus,
     };
@@ -983,6 +989,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       diagnostics.apis.thesportsdb.status = "error";
       diagnostics.apis.thesportsdb.message = `Error: ${error.message}`;
+    }
+
+    // Test Gemini
+    try {
+      if (process.env.GEMINI_API_KEY) {
+        const { GoogleGenerativeAI } = await import("@google/generative-ai");
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent("ping");
+        const text = result.response.text();
+        
+        if (text) {
+          diagnostics.apis.gemini.status = "active";
+          diagnostics.apis.gemini.message = "API working correctly";
+        }
+      } else {
+        diagnostics.apis.gemini.status = "not_configured";
+        diagnostics.apis.gemini.message = "GEMINI_API_KEY missing in environment";
+      }
+    } catch (error: any) {
+      diagnostics.apis.gemini.status = "error";
+      diagnostics.apis.gemini.message = `Error: ${error.message}`;
     }
 
     res.json(diagnostics);

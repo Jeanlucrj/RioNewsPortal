@@ -36,7 +36,7 @@ export async function generateArticle(options: GenerateOptions): Promise<Generat
   }
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const categoryContext = categoryPrompts[category] || categoryPrompts.geral;
   const toneDesc = {
