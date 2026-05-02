@@ -73,30 +73,32 @@ export default function Home() {
           <>
             {/* Hero — only on first page */}
             {featuredNews && (
-              <section className="relative h-[500px] mb-12">
-                <img
-                  src={featuredNews.imageUrl || getDefaultImage(featuredNews.category, featuredNews.title, featuredNews.description)}
-                  alt={featuredNews.title}
-                  className="absolute inset-0 w-full h-full object-cover object-center"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-end pb-12">
-                  <div className="max-w-3xl">
-                    <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide rounded mb-4">
-                      Destaque
-                    </span>
-                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif text-white mb-4 leading-tight line-clamp-4">
-                      {featuredNews.title}
-                    </h2>
-                    <p className="text-base md:text-lg text-white/90 mb-6 line-clamp-2 md:line-clamp-3">
-                      {featuredNews.description}
-                    </p>
-                    <Link
-                      href={`/noticia/${encodeURIComponent(featuredNews.id)}`}
-                      className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 transition-colors"
-                    >
-                      Ler Notícia
-                    </Link>
+              <section className="mb-12 px-4 sm:px-6 lg:px-8">
+                <div className="relative h-[420px] max-w-5xl mx-auto rounded-xl overflow-hidden">
+                  <img
+                    src={featuredNews.imageUrl || getDefaultImage(featuredNews.category, featuredNews.title, featuredNews.description)}
+                    alt={featuredNews.title}
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                  <div className="relative h-full flex items-end pb-10 px-8">
+                    <div className="max-w-2xl">
+                      <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide rounded mb-4">
+                        Destaque
+                      </span>
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-serif text-white mb-3 leading-tight line-clamp-3">
+                        {featuredNews.title}
+                      </h2>
+                      <p className="text-sm md:text-base text-white/90 mb-5 line-clamp-2">
+                        {featuredNews.description}
+                      </p>
+                      <Link
+                        href={`/noticia/${encodeURIComponent(featuredNews.id)}`}
+                        className="inline-flex items-center px-5 py-2.5 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        Ler Notícia
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </section>
