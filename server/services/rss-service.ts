@@ -94,7 +94,7 @@ export class RSSService {
     return html.replace(/<[^>]*>/g, "").trim();
   }
 
-  async fetchRSSFeed(feedUrl: string, feedName: string, _feedCategory?: NewsCategory): Promise<NewsArticle[]> {
+  async fetchRSSFeed(feedUrl: string, feedName: string, feedCategory?: NewsCategory): Promise<NewsArticle[]> {
     try {
       const feed = await this.parser.parseURL(feedUrl);
 
@@ -109,15 +109,21 @@ export class RSSService {
           let htmlContent = item['content:encoded'] || item.content || item.summary || "";
           const description = this.stripHtml(item.contentSnippet || htmlContent);
 
-          // Detect category using new hybrid logic
-          // Pass categories array if available
-          const externalCategories = Array.isArray(item.categories) ? item.categories : [];
-          let category: NewsCategory = detectCategory(
-            item.title,
-            description,
-            feedName,
-            externalCategories
-          );
+          // If the feed has a specific category (not "geral"), use it directly
+          // This avoids misclassification (e.g., GloboEsporte articles are always sports)
+          let category: NewsCategory;
+          if (feedCategory && feedCategory !== "geral") {
+            category = feedCategory;
+          } else {
+            // Detect category using hybrid logic for general feeds
+            const externalCategories = Array.isArray(item.categories) ? item.categories : [];
+            category = detectCategory(
+              item.title,
+              description,
+              feedName,
+              externalCategories
+            );
+          }
 
           // Extract image URL from various sources
           let imageUrl = undefined;

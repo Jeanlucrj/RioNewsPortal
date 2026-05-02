@@ -833,6 +833,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recategorize all articles in DB using improved categorization logic
+  app.post("/api/news/recategorize", async (req, res) => {
+    try {
+      const { db } = await import("../db/index.js");
+      const { newsArticles } = await import("../shared/schema.js");
+      const { detectCategory } = await import("../shared/categorization.js");
+      const { eq } = await import("drizzle-orm");
+
+      const allArticles = await db.select().from(newsArticles);
+      let changed = 0;
+      const changes: { title: string; from: string; to: string }[] = [];
+
+      for (const article of allArticles) {
+        const newCategory = detectCategory(
+          article.title,
+          article.description,
+          article.source
+        );
+
+        if (newCategory !== article.category) {
+          await db.update(newsArticles)
+            .set({ category: newCategory })
+            .where(eq(newsArticles.id, article.id));
+          changes.push({
+            title: article.title.substring(0, 80),
+            from: article.category,
+            to: newCategory,
+          });
+          changed++;
+        }
+      }
+
+      await storage.clearCache();
+      res.json({
+        message: `Recategorized ${changed} articles out of ${allArticles.length}`,
+        total: allArticles.length,
+        changed,
+        changes: changes.slice(0, 30), // Show first 30 changes
+      });
+    } catch (error) {
+      console.error("Error recategorizing:", error);
+      res.status(500).json({ error: "Failed to recategorize" });
+    }
+  });
+
   // Sync external events (Sympla + Eventbrite)
   app.post("/api/events/sync", async (req, res) => {
     try {

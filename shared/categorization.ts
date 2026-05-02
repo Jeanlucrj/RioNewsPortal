@@ -1,10 +1,46 @@
 import { type NewsCategory } from "./schema.js";
 
+// Keywords that are unambiguously sports (not also place names)
+const unambiguousSportsKeywords = [
+    "brasileirão", "campeonato brasileiro", "futebol", "escalação", "gol", "estádio",
+    "maracanã", "libertadores", "champions league", "copa do brasil", "placar", "convocação",
+    "palmeiras", "corinthians", "são paulo fc", "grêmio", "internacional", "atlético",
+    "série a", "série b", "copa sul-americana", "seleção brasileira", "técnico",
+    "atacante", "zagueiro", "goleiro", "meia", "lateral", "artilheiro",
+    "rodada", "semifinal", "final do campeonato"
+];
+
+// Keywords that are ALSO place names in Rio — require extra sports context to classify as sports
+const ambiguousSportsKeywords = [
+    "botafogo", "flamengo", "fluminense", "vasco"
+];
+
+// Context words that confirm sports intent when found alongside ambiguous keywords
+const sportsContextWords = [
+    "jogo", "time", "clube", "gol", "futebol", "partida", "campeonato", "rodada",
+    "escalação", "técnico", "reforço", "contratação", "jogador", "atacante",
+    "zagueiro", "goleiro", "meia", "torcida", "torcedor", "vitória", "derrota",
+    "empate", "classificação", "rebaixamento", "série a", "série b",
+    "brasileirão", "libertadores", "copa", "estádio", "maracanã", "placar",
+    "pênalti", "falta", "cartão", "arbitragem", "árbitro", "var",
+    "semifinal", "quartas", "oitavas", "grupo", "fase", "turno",
+    "artilheiro", "capitão", "titular", "reserva", "banco", "substituição"
+];
+
+// Words that strongly indicate the keyword is being used as a place name, not a team
+const placeContextWords = [
+    "bairro", "rua", "avenida", "praia", "zona sul", "zona norte", "zona oeste",
+    "casarão", "desaba", "desabamento", "incêndio", "prédio", "edifício",
+    "morador", "moradores", "comunidade", "favela", "estação", "metrô",
+    "trânsito", "acidente", "operário", "bombeiros", "resgate", "hospital",
+    "delegacia", "assalto", "arrastão", "obra", "prefeitura",
+    "restaurante", "bar", "shopping", "loja", "mercado"
+];
+
 export const categoryKeywords: Record<Exclude<NewsCategory, "geral">, string[]> = {
     esportes: [
-        "brasileirão", "campeonato brasileiro", "futebol", "escalação", "gol", "estádio",
-        "maracanã", "flamengo", "fluminense", "vasco", "botafogo", "palmeiras", "corinthians",
-        "libertadores", "champions league", "copa do brasil", "partida", "placar", "convocação"
+        ...unambiguousSportsKeywords,
+        ...ambiguousSportsKeywords,
     ],
     shows: [
         "show", "festival de música", "concerto", "banda", "samba", "rock", "turnê",
@@ -65,6 +101,40 @@ function matchKeyword(text: string, keyword: string): boolean {
     return regex.test(text);
 }
 
+/**
+ * Checks if an ambiguous keyword (e.g. "botafogo") is being used in a sports
+ * context vs. as a place name. Returns true only if there is sufficient sports
+ * context AND no strong place-name context.
+ */
+function isAmbiguousKeywordSports(fullText: string): boolean {
+    const lower = fullText.toLowerCase();
+    const hasPlaceContext = placeContextWords.some(w => lower.includes(w));
+    const hasSportsContext = sportsContextWords.some(w => lower.includes(w));
+
+    // If place context is present and no sports context, it's NOT sports
+    if (hasPlaceContext && !hasSportsContext) return false;
+    // If sports context is present, it IS sports
+    if (hasSportsContext) return true;
+    // No context at all — default to NOT sports (safer to leave as geral)
+    return false;
+}
+
+/**
+ * Checks if a text matches a sports keyword, handling ambiguous keywords
+ * (team names that are also neighborhood names) with context awareness.
+ */
+function matchesSportsKeyword(text: string, fullText: string): boolean {
+    // Check unambiguous keywords first
+    if (unambiguousSportsKeywords.some(kw => matchKeyword(text, kw))) {
+        return true;
+    }
+    // Check ambiguous keywords only if context confirms sports
+    if (ambiguousSportsKeywords.some(kw => matchKeyword(text, kw))) {
+        return isAmbiguousKeywordSports(fullText);
+    }
+    return false;
+}
+
 export function detectCategory(
     title: string,
     description?: string,
@@ -72,7 +142,8 @@ export function detectCategory(
     externalCategories?: string[]
 ): NewsCategory {
     const lowerTitle = title.toLowerCase();
-    const lowerDesc = (description || "").toLowerCase().substring(0, 150);
+    const lowerDesc = (description || "").toLowerCase().substring(0, 300);
+    const fullText = lowerTitle + " " + lowerDesc;
     const isGazeta = sourceName?.toLowerCase().includes("gazeta do povo");
 
     if (externalCategories && externalCategories.length > 0) {
@@ -91,7 +162,13 @@ export function detectCategory(
 
     const titleMatches: NewsCategory[] = [];
     for (const category of priorityOrder) {
-        if (category === "esportes" && (isGazeta || sportsBlacklist.some(term => lowerTitle.includes(term)))) continue;
+        if (category === "esportes") {
+            if (isGazeta || sportsBlacklist.some(term => lowerTitle.includes(term))) continue;
+            if (matchesSportsKeyword(lowerTitle, fullText)) {
+                titleMatches.push(category);
+            }
+            continue;
+        }
 
         const keywords = categoryKeywords[category];
         if (keywords.some(keyword => matchKeyword(lowerTitle, keyword))) {
@@ -104,7 +181,13 @@ export function detectCategory(
 
     const descMatches: NewsCategory[] = [];
     for (const category of priorityOrder) {
-        if (category === "esportes" && (isGazeta || sportsBlacklist.some(term => lowerDesc.includes(term)))) continue;
+        if (category === "esportes") {
+            if (isGazeta || sportsBlacklist.some(term => lowerDesc.includes(term))) continue;
+            if (matchesSportsKeyword(lowerDesc, fullText)) {
+                descMatches.push(category);
+            }
+            continue;
+        }
 
         const keywords = categoryKeywords[category];
         if (keywords.some(keyword => matchKeyword(lowerDesc, keyword))) {
