@@ -548,17 +548,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get specific news article by ID from database
+  // Get specific news article by ID from database (with RSS cache fallback)
   app.get("/api/news/:id", async (req, res) => {
     try {
       const id = decodeURIComponent(req.params.id);
+
+      // 1. Try the database first
       const article = await storage.getNewsById(id);
+      if (article) return res.json(article);
 
-      if (!article) {
-        return res.status(404).json({ error: "Article not found" });
-      }
+      // 2. Try in-memory RSS cache
+      const fromCache = rssMemCache.find(a => a.id === id || a.url === id);
+      if (fromCache) return res.json(fromCache);
 
-      res.json(article);
+      // 3. Try fetching RSS live (covers cold-start on Vercel where cache is empty)
+      try {
+        const liveArticles = await rssService.fetchAllRSSFeeds();
+        rssMemCache = liveArticles;
+        rssMemCacheTime = Date.now();
+        const fromLive = liveArticles.find(a => a.id === id || a.url === id);
+        if (fromLive) return res.json(fromLive);
+      } catch { /* continue to 404 */ }
+
+      return res.status(404).json({ error: "Article not found" });
     } catch (error) {
       console.error("Error fetching article:", error);
       res.status(500).json({ error: "Failed to fetch article" });
