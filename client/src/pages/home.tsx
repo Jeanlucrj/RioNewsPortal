@@ -52,7 +52,7 @@ export default function Home() {
     if (heroPool.length <= 1) return;
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroPool.length);
-    }, 8000);
+    }, 12000);
     return () => clearInterval(timer);
   }, [heroPool.length]);
 
