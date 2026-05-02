@@ -1,16 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Zap } from "lucide-react";
 import type { NewsArticle } from "@shared/schema";
 
 export function BreakingNewsTicker() {
-  const { data } = useQuery<{ news: NewsArticle[] }>({
-    queryKey: ["/api/news", { page: 1, limit: 10 }],
-    queryFn: () => fetch("/api/news?page=1&limit=10").then((r) => r.json()),
-    refetchInterval: 5 * 60 * 1000, // refresh every 5 min
-  });
+  const [headlines, setHeadlines] = useState<NewsArticle[]>([]);
 
-  const headlines = data?.news?.slice(0, 8) ?? [];
+  useEffect(() => {
+    fetch("/api/news?page=1&limit=10")
+      .then((r) => r.json())
+      .then((data) => {
+        const articles = data?.news ?? data ?? [];
+        if (Array.isArray(articles) && articles.length > 0) {
+          setHeadlines(articles.slice(0, 8));
+        }
+      })
+      .catch(() => {/* fail silently */});
+  }, []);
 
   if (headlines.length === 0) return null;
 
