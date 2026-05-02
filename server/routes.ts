@@ -267,6 +267,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", message: "pong", timestamp: new Date().toISOString() });
   });
 
+  app.get("/api/debug", async (req, res) => {
+    const result: any = {
+      timestamp: new Date().toISOString(),
+      env: {
+        NODE_ENV: process.env.NODE_ENV,
+        VERCEL: !!process.env.VERCEL,
+        DATABASE_URL: process.env.DATABASE_URL ? "SET" : "NOT SET",
+        GEMINI_API_KEY: process.env.GEMINI_API_KEY ? "SET" : "NOT SET",
+      },
+      db: { status: "unknown", articleCount: 0, error: null as any },
+      rssCache: { size: rssMemCache.length },
+    };
+    try {
+      const articles = await storage.getNews();
+      result.db.status = "connected";
+      result.db.articleCount = articles.length;
+    } catch (err: any) {
+      result.db.status = "error";
+      result.db.error = err.message;
+    }
+    res.json(result);
+  });
+
   // ========== AUTH ROUTES ==========
 
   // Register new user (DISABLED - Only admins can create accounts via CMS)
@@ -371,18 +394,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const offset = (page - 1) * limit;
     try {
       const dbTimeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB timeout")), 5000)
+        setTimeout(() => reject(new Error("DB timeout")), 8000)
       );
       const all = await Promise.race([storage.getNews(), dbTimeout]) as NewsArticle[];
       if (all.length === 0) throw new Error("empty");
       const total = all.length;
       const paginated = all.slice(offset, offset + limit);
       res.json({ news: paginated, total, page, limit });
-    } catch {
-      const all = await getNewsFromRSSCache();
-      const total = all.length;
-      const paginated = all.slice(offset, offset + limit);
-      res.json({ news: paginated, total, page, limit });
+    } catch (err) {
+      console.warn("⚠️ DB falhou para /api/news, tentando RSS:", err);
+      try {
+        // Se cache em memória estiver vazio, busca RSS em tempo real
+        let all = rssMemCache.length > 0 ? rssMemCache : await rssService.fetchAllRSSFeeds();
+        if (all.length > 0) { rssMemCache = all; rssMemCacheTime = Date.now(); }
+        const total = all.length;
+        const paginated = all.slice(offset, offset + limit);
+        res.json({ news: paginated, total, page, limit });
+      } catch (rssErr) {
+        console.error("❌ RSS também falhou:", rssErr);
+        res.json({ news: [], total: 0, page, limit });
+      }
     }
   });
 
