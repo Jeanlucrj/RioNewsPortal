@@ -161,6 +161,7 @@ export function Header() {
         </div>
       </header>
       <SportsScores />
+      <BreakingNewsTicker />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );

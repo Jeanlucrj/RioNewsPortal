@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -7,7 +7,7 @@ import { NewsCard } from "@/components/news-card";
 import { EventCard } from "@/components/event-card";
 import { Button } from "@/components/ui/button";
 import type { NewsArticle, Event } from "@shared/schema";
-import { Newspaper, Calendar as CalendarIcon, TrendingUp, ChevronLeft, ChevronRight, Eye, Radio } from "lucide-react";
+import { Newspaper, Calendar as CalendarIcon, TrendingUp, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { getDefaultImage } from "@/lib/image-service";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,12 +23,7 @@ interface NewsPage {
 
 export default function Home() {
   const [page, setPage] = useState(1);
-
-  const { data: rioAgora } = useQuery<NewsArticle[]>({
-    queryKey: ["/api/news/rio-agora"],
-    queryFn: () => fetch("/api/news/rio-agora").then(r => r.json()),
-    refetchInterval: 2 * 60 * 1000, // recheck every 2 min
-  });
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const { data: newsPage, isLoading: newsLoading } = useQuery<NewsPage>({
     queryKey: ["/api/news", page],
@@ -48,8 +43,18 @@ export default function Home() {
   const total = newsPage?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const featuredNews = page === 1 ? news[0] : undefined;
+  // Top 5 articles rotate as hero every 8 seconds (only on page 1)
+  const heroPool = page === 1 ? news.slice(0, 5) : [];
+  const featuredNews = heroPool[heroIndex % Math.max(heroPool.length, 1)];
   const gridNews = page === 1 ? news.slice(1) : news;
+
+  useEffect(() => {
+    if (heroPool.length <= 1) return;
+    const timer = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroPool.length);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [heroPool.length]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -66,35 +71,6 @@ export default function Home() {
           </div>
         ) : (
           <>
-            {/* Rio Agora — breaking news strip */}
-            {rioAgora && rioAgora.length > 0 && (
-              <section className="bg-red-600 text-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-                      </span>
-                      <Radio className="h-4 w-4" />
-                      <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Rio Agora</span>
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1">
-                      {rioAgora.slice(0, 4).map((a) => (
-                        <Link
-                          key={a.id}
-                          href={`/noticia/${encodeURIComponent(a.id)}`}
-                          className="text-xs text-white/90 hover:text-white hover:underline line-clamp-1 max-w-xs"
-                        >
-                          {a.title}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
             {/* Hero — only on first page */}
             {featuredNews && (
               <section className="relative h-[500px] mb-12">
