@@ -54,7 +54,7 @@ export default function Category() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
-        <div className={`bg-gradient-to-r ${config.gradient} py-16`}>
+        <div className={`bg-gradient-to-r ${config.gradient} py-10`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1 className="text-4xl md:text-5xl font-bold font-serif text-white mb-2" data-testid="text-category-title">
               {config.label}
