@@ -161,7 +161,7 @@ export function Header() {
         </div>
       </header>
       <SportsScores />
-      <BreakingNewsTicker />
+      <BreakingNewsTicker excludeCategory="esportes" />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );

@@ -4,28 +4,36 @@ import { Zap } from "lucide-react";
 import type { NewsArticle } from "@shared/schema";
 
 interface BreakingNewsTickerProps {
-  category?: string; // if provided, filters by category
-  label?: string;    // custom label (default "Últimas")
+  category?: string;        // if set, fetch ONLY this category
+  excludeCategory?: string; // if set, exclude this category from general feed
+  label?: string;
 }
 
-export function BreakingNewsTicker({ category, label = "Últimas" }: BreakingNewsTickerProps) {
+export function BreakingNewsTicker({ category, excludeCategory, label = "Últimas" }: BreakingNewsTickerProps) {
   const [headlines, setHeadlines] = useState<NewsArticle[]>([]);
 
   useEffect(() => {
     const url = category
-      ? `/api/news/category/${category}?page=1&limit=10`
-      : `/api/news?page=1&limit=10`;
+      ? `/api/news/category/${category}?page=1&limit=15`
+      : `/api/news?page=1&limit=30`; // fetch more to have enough after filtering
 
     fetch(url)
       .then((r) => r.json())
       .then((data) => {
-        const articles = data?.news ?? data ?? [];
-        if (Array.isArray(articles) && articles.length > 0) {
+        let articles: NewsArticle[] = data?.news ?? data ?? [];
+        if (!Array.isArray(articles)) articles = [];
+
+        // Exclude specific category if requested (e.g. exclude sports from header)
+        if (excludeCategory) {
+          articles = articles.filter(a => a.category !== excludeCategory);
+        }
+
+        if (articles.length > 0) {
           setHeadlines(articles.slice(0, 8));
         }
       })
       .catch(() => {/* fail silently */});
-  }, [category]);
+  }, [category, excludeCategory]);
 
   if (headlines.length === 0) return null;
 
