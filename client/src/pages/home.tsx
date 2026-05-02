@@ -52,7 +52,7 @@ export default function Home() {
     if (heroPool.length <= 1) return;
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroPool.length);
-    }, 12000);
+    }, 50000);
     return () => clearInterval(timer);
   }, [heroPool.length]);
 
@@ -74,14 +74,12 @@ export default function Home() {
             {/* Hero — only on first page */}
             {featuredNews && (
               <section className="relative h-[500px] mb-12">
-                <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url(${featuredNews.imageUrl || getDefaultImage(featuredNews.category, featuredNews.title, featuredNews.description)})`,
-                  }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
-                </div>
+                <img
+                  src={featuredNews.imageUrl || getDefaultImage(featuredNews.category, featuredNews.title, featuredNews.description)}
+                  alt={featuredNews.title}
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-end pb-12">
                   <div className="max-w-3xl">
                     <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide rounded mb-4">
