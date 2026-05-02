@@ -62,7 +62,11 @@ export default function Article() {
   // Increment view count once on mount
   const viewMutation = useMutation({
     mutationFn: (id: string) =>
-      fetch(`/api/news/${encodeURIComponent(id)}/view`, { method: "POST" }).then((r) => r.json()),
+      fetch(`/api/news/increment-view`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      }).then((r) => r.json()),
   });
 
   useEffect(() => {

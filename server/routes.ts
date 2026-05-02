@@ -350,22 +350,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ========== NEWS ROUTES ==========
 
-  // "Rio Agora" — articles published in the last 2 hours
+  // "Rio Agora" — articles published in the last 24h (fallback to most recent if none within 2h)
   app.get("/api/news/rio-agora", async (req, res) => {
     try {
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
       const all = await Promise.race([
         storage.getNews(),
-        new Promise<never>((_, r) => setTimeout(() => r(new Error("timeout")), 5000)),
+        new Promise<never>((_, r) => setTimeout(() => r(new Error("timeout")), 8000)),
       ]) as NewsArticle[];
-      const fresh = all.filter(a => new Date(a.publishedAt) >= twoHoursAgo).slice(0, 8);
-      res.json(fresh);
-    } catch {
-      const all = await getNewsFromRSSCache();
+
+      // First try: last 2 hours
       const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-      res.json(all.filter(a => new Date(a.publishedAt) >= twoHoursAgo).slice(0, 8));
+      let fresh = all.filter(a => new Date(a.publishedAt) >= twoHoursAgo);
+
+      // Fallback: last 24 hours
+      if (fresh.length === 0) {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        fresh = all.filter(a => new Date(a.publishedAt) >= oneDayAgo);
+      }
+
+      // Ultimate fallback: just return the 8 most recent
+      if (fresh.length === 0) {
+        fresh = all.slice(0, 8);
+      }
+
+      res.json(fresh.slice(0, 8));
+    } catch {
+      try {
+        let all = rssMemCache.length > 0 ? rssMemCache : await rssService.fetchAllRSSFeeds();
+        if (all.length > 0) { rssMemCache = all; rssMemCacheTime = Date.now(); }
+        res.json(all.slice(0, 8));
+      } catch { res.json([]); }
     }
   });
+
 
   // Sync RSS feeds to database
   app.post("/api/news/sync-rss", async (req, res) => {
@@ -452,14 +469,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Increment article views
-  app.post("/api/news/:id/view", async (req, res) => {
+  // Increment article views — accepts id via POST body to avoid Express path parsing issues
+  app.post("/api/news/increment-view", async (req, res) => {
     try {
-      const id = decodeURIComponent(req.params.id);
+      const { id } = req.body;
+      if (!id || typeof id !== 'string') return res.json({ ok: false, reason: 'missing id' });
       await storage.incrementViews(id);
       res.json({ ok: true });
-    } catch {
-      res.json({ ok: false });
+    } catch (err: any) {
+      res.json({ ok: false, reason: err?.message });
+    }
+  });
+
+  // Legacy: Increment article views via URL param (kept for compatibility)
+  app.post("/api/news/:id/view", async (req, res) => {
+    try {
+      let id = req.params.id;
+      try { id = decodeURIComponent(id); } catch { /* use raw */ }
+      await storage.incrementViews(id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.json({ ok: false, reason: err?.message });
     }
   });
 
