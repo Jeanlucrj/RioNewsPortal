@@ -3,11 +3,20 @@ import { Link } from "wouter";
 import { Zap } from "lucide-react";
 import type { NewsArticle } from "@shared/schema";
 
-export function BreakingNewsTicker() {
+interface BreakingNewsTickerProps {
+  category?: string; // if provided, filters by category
+  label?: string;    // custom label (default "Últimas")
+}
+
+export function BreakingNewsTicker({ category, label = "Últimas" }: BreakingNewsTickerProps) {
   const [headlines, setHeadlines] = useState<NewsArticle[]>([]);
 
   useEffect(() => {
-    fetch("/api/news?page=1&limit=10")
+    const url = category
+      ? `/api/news/category/${category}?page=1&limit=10`
+      : `/api/news?page=1&limit=10`;
+
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         const articles = data?.news ?? data ?? [];
@@ -16,7 +25,7 @@ export function BreakingNewsTicker() {
         }
       })
       .catch(() => {/* fail silently */});
-  }, []);
+  }, [category]);
 
   if (headlines.length === 0) return null;
 
@@ -29,7 +38,7 @@ export function BreakingNewsTicker() {
         {/* Label */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white shrink-0 z-10 text-xs font-bold uppercase tracking-wide">
           <Zap className="h-3 w-3 fill-current" />
-          Últimas
+          {label}
         </div>
 
         {/* Scrolling track */}
