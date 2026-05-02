@@ -157,6 +157,7 @@ export interface NewsArticle {
   views?: number;
   tags?: string[];
   isManual?: boolean;
+  isDraft?: boolean;
 }
 
 export interface SportTeam {
