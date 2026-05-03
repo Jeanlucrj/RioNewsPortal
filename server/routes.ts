@@ -185,60 +185,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Or configure valid SYMPLA_API_KEY and EVENTBRITE_API_KEY secrets and call the sync endpoint
 
   // ========== SITEMAP ROUTES ==========
-  app.get("/sitemap.xml", async (req, res) => {
-    try {
-      const articles = await storage.getNews(undefined, 1000, 0);
-      
-      const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://rionews.com.br/</loc>
-    <changefreq>hourly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  ${articles.map(article => `
-  <url>
-    <loc>https://rionews.com.br/noticia/${encodeURIComponent(article.id)}</loc>
-    <lastmod>${new Date(article.publishedAt).toISOString()}</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.8</priority>
-  </url>`).join('')}
-</urlset>`;
-
-      res.header("Content-Type", "application/xml");
-      res.send(xml);
-    } catch (error) {
-      console.error("Erro ao gerar sitemap:", error);
-      res.status(500).send("Erro ao gerar sitemap");
-    }
-  });
-
+  // sitemap.xml principal — definido adiante com suporte a categorias e SITE_URL
+  // sitemap-news.xml — Google News format, artigos das últimas 48h
   app.get("/sitemap-news.xml", async (req, res) => {
     try {
-      // News sitemaps should only include articles from the last 2 days
+      const baseUrl = process.env.SITE_URL || "https://odiariocarioca.com.br";
       const twoDaysAgo = new Date();
       twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-      
+
       let articles = await storage.getNews(undefined, 100, 0);
       articles = articles.filter(a => new Date(a.publishedAt) >= twoDaysAgo);
 
+      const escape = (s: string) =>
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
-  ${articles.map(article => `
-  <url>
-    <loc>https://rionews.com.br/noticia/${encodeURIComponent(article.id)}</loc>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+${articles.map(article => `  <url>
+    <loc>${baseUrl}/noticia/${encodeURIComponent(article.id)}</loc>
     <news:news>
       <news:publication>
-        <news:name>Diário do Carioca</news:name>
-        <news:language>pt-br</news:language>
+        <news:name>O Diário Carioca</news:name>
+        <news:language>pt-BR</news:language>
       </news:publication>
       <news:publication_date>${new Date(article.publishedAt).toISOString()}</news:publication_date>
-      <news:title>${article.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</news:title>
+      <news:title>${escape(article.title)}</news:title>
     </news:news>
-  </url>`).join('')}
+  </url>`).join("\n")}
 </urlset>`;
 
-      res.header("Content-Type", "application/xml");
+      res.set("Content-Type", "application/xml; charset=utf-8");
+      res.set("Cache-Control", "public, max-age=300");
       res.send(xml);
     } catch (error) {
       console.error("Erro ao gerar sitemap-news:", error);
@@ -1069,14 +1047,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/sitemap.xml", async (req, res) => {
     try {
       const articles = await storage.getNews(undefined, 500, 0);
-      const baseUrl = process.env.SITE_URL || `${req.protocol}://${req.get("host")}`;
+      const baseUrl = process.env.SITE_URL || "https://odiariocarioca.com.br";
 
       const categories = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna"];
 
       type SitemapUrl = { loc: string; priority: string; changefreq: string; lastmod?: string };
 
       const staticUrls: SitemapUrl[] = [
-        { loc: baseUrl, priority: "1.0", changefreq: "hourly" },
+        { loc: baseUrl,              priority: "1.0", changefreq: "hourly" },
+        { loc: `${baseUrl}/eventos`, priority: "0.7", changefreq: "hourly" },
         ...categories.map(c => ({
           loc: `${baseUrl}/categoria/${c}`,
           priority: "0.8",
@@ -1085,28 +1064,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
 
       const articleUrls: SitemapUrl[] = articles.map(a => ({
-        loc: `${baseUrl}/noticia/${encodeURIComponent(a.id)}`,
-        lastmod: new Date(a.publishedAt).toISOString().split("T")[0],
-        priority: "0.6",
+        loc:        `${baseUrl}/noticia/${encodeURIComponent(a.id)}`,
+        lastmod:    new Date(a.publishedAt).toISOString().split("T")[0],
+        priority:   "0.9",
         changefreq: "weekly",
       }));
 
       const allUrls = [...staticUrls, ...articleUrls];
 
-      const urlEntries = allUrls.map(u => `
-  <url>
-    <loc>${u.loc}</loc>
-    ${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}
-    <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
-  </url>`).join("");
+      const urlEntries = allUrls.map(u =>
+        `  <url>\n    <loc>${u.loc}</loc>\n${u.lastmod ? `    <lastmod>${u.lastmod}</lastmod>\n` : ""}    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
+      ).join("\n");
 
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urlEntries}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urlEntries}
 </urlset>`;
 
       res.set("Content-Type", "application/xml; charset=utf-8");
-      res.set("Cache-Control", "public, max-age=3600"); // 1 hour
+      res.set("Cache-Control", "public, max-age=3600");
       res.send(xml);
     } catch (error) {
       res.status(500).send("Erro ao gerar sitemap");
