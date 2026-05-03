@@ -278,6 +278,61 @@ ${articles.map(article => `  <url>
     }
   });
 
+  // ========== INTERNAL AI TRIGGER ==========
+  // Protected by WEBHOOK_SECRET — triggers generation for all categories bypassing cooldown
+  app.post("/api/internal/ai/generate-all", async (req, res) => {
+    const secret = process.env.WEBHOOK_SECRET;
+    const auth = req.headers.authorization;
+    if (!secret || auth !== `Bearer ${secret}`) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const categories = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna"];
+    const results: Record<string, any> = {};
+
+    res.writeHead(200, { "Content-Type": "application/json", "Transfer-Encoding": "chunked" });
+
+    for (const category of categories) {
+      try {
+        let sources = await storage.getNews(category as any, 20, 0);
+        sources = sources.filter(a => a.source !== "Diário do Carioca");
+        if (sources.length < 2) {
+          const all = await storage.getNews(undefined, 40, 0);
+          sources = all.filter(a => a.category === category && a.source !== "Diário do Carioca").slice(0, 10);
+        }
+        if (sources.length === 0) {
+          results[category] = { status: "skipped", reason: "sem fontes" };
+          continue;
+        }
+        // Shuffle sources
+        for (let i = sources.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [sources[i], sources[j]] = [sources[j], sources[i]];
+        }
+        const recentAll = await storage.getNews(undefined, 30, 0);
+        const usedImageUrls = recentAll
+          .filter(a => a.source === "Diário do Carioca" && a.imageUrl)
+          .map(a => a.imageUrl as string);
+
+        const generated = await generateArticle({ category, sourceArticles: sources.slice(0, 8), usedImageUrls });
+
+        await storage.createNewsArticle({
+          title: generated.title, description: generated.description, content: generated.content,
+          category: generated.category, tags: generated.tags, source: "Diário do Carioca",
+          author: "Redação", imageUrl: generated.imageUrl, isManual: true, isDraft: false,
+        });
+        await storage.clearCache();
+        results[category] = { status: "ok", title: generated.title, image: generated.imageUrl?.slice(0, 60) };
+        console.log(`✅ [generate-all] ${category}: ${generated.title}`);
+      } catch (err: any) {
+        results[category] = { status: "error", error: err.message };
+        console.error(`❌ [generate-all] ${category}:`, err.message);
+      }
+    }
+
+    res.end(JSON.stringify(results, null, 2));
+  });
+
   // ========== NEWSLETTER ROUTES ==========
   app.post("/api/newsletter/subscribe", async (req, res) => {
     try {
