@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { NewsArticle } from "../../shared/schema.js";
+import { fetchStockImage } from "./stock-image-service.js";
 
 export interface GeneratedArticle {
   title: string;
@@ -106,18 +107,23 @@ As tags devem ser palavras-chave em minúsculas (ex: "flamengo", "carnaval", "ga
     throw new Error("Artigo gerado incompleto — faltam campos obrigatórios");
   }
 
-  // Pick a valid image not already used by recent AI articles
+  // Fetch contextual stock photo using article tags (most semantically precise)
   const usedSet = new Set(usedImageUrls);
-  const candidateImages = sourceArticles
-    .map(a => a.imageUrl)
-    .filter((url): url is string => !!url && url.startsWith("http") && !usedSet.has(url));
-  // Shuffle to avoid always picking the same first image
-  for (let i = candidateImages.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [candidateImages[i], candidateImages[j]] = [candidateImages[j], candidateImages[i]];
+  const articleTags = Array.isArray(parsed.tags) ? parsed.tags : [];
+
+  let sourceImage = await fetchStockImage(category, articleTags, parsed.title, usedSet);
+
+  // Final fallback: unused image from source articles
+  if (!sourceImage) {
+    const candidates = sourceArticles
+      .map(a => a.imageUrl)
+      .filter((url): url is string => !!url && url.startsWith("http") && !usedSet.has(url));
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    sourceImage = candidates[0];
   }
-  const sourceImage = candidateImages[0]
-    ?? sourceArticles.find(a => a.imageUrl && a.imageUrl.startsWith("http"))?.imageUrl;
 
   return {
     title: parsed.title,
