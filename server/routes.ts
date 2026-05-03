@@ -45,31 +45,82 @@ async function getNewsFromRSSCache(category?: NewsCategory): Promise<NewsArticle
 const AI_CATEGORIES = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna"];
 let aiCategoryIndex = 0;
 
+// Minimum hours between AI articles for the same category
+const AI_COOLDOWN_HOURS = 6;
+
+// In-memory guard against concurrent cold-start races on Vercel serverless
+let aiGenerationRunning = false;
+let lastAiGenerationMs = 0;
+
 /**
  * Automatically generates one AI article per run, rotating through categories.
- * Skips if GEMINI_API_KEY is not set or if there are no source articles.
+ * Guards against duplicate runs (Vercel multi-instance cold starts) via:
+ *   1. In-process flag (same instance)
+ *   2. DB check: skip if a Diário do Carioca article for this category exists
+ *      within the last AI_COOLDOWN_HOURS hours
  */
 async function runAIGeneration(trigger: "startup" | "scheduled") {
   if (!process.env.GEMINI_API_KEY) return;
+
+  // In-process rate limit: at most once every 30 min per process
+  const now = Date.now();
+  if (aiGenerationRunning || now - lastAiGenerationMs < 30 * 60 * 1000) {
+    console.log(`⏭️  [AI] Geração ignorada — outra já em andamento ou recente`);
+    return;
+  }
+  aiGenerationRunning = true;
+  lastAiGenerationMs = now;
 
   const category = AI_CATEGORIES[aiCategoryIndex % AI_CATEGORIES.length];
   aiCategoryIndex++;
 
   try {
-    console.log(`🤖 [AI] Gerando artigo automático — categoria: ${category} (${trigger})`);
-
-    // Get source articles from DB for this category
-    let sources = await storage.getNews(category as any, 8, 0);
-    if (sources.length < 2) {
-      sources = await storage.getNews(undefined, 15, 0);
-      sources = sources.filter((a) => a.category === category).slice(0, 8);
-    }
-    if (sources.length === 0) {
-      console.log(`⚠️  [AI] Sem artigos fonte para categoria "${category}" — pulando`);
+    // DB cooldown: skip if AI already generated an article for this category recently
+    const cooldownCutoff = new Date(now - AI_COOLDOWN_HOURS * 60 * 60 * 1000);
+    const recentAll = await storage.getNews(category as any, 10, 0);
+    const recentAI = recentAll.filter(
+      a => a.source === "Diário do Carioca" && new Date(a.publishedAt) > cooldownCutoff
+    );
+    if (recentAI.length > 0) {
+      console.log(`⏭️  [AI] Artigo recente para "${category}" (${recentAI[0].title.slice(0, 40)}...) — cooldown ativo`);
       return;
     }
 
-    const generated = await generateArticle({ category, sourceArticles: sources });
+    console.log(`🤖 [AI] Gerando artigo — categoria: ${category} (${trigger})`);
+
+    // Get source articles excluding Diário do Carioca (avoid self-referencing)
+    let sources = await storage.getNews(category as any, 20, 0);
+    sources = sources.filter(a => a.source !== "Diário do Carioca");
+
+    if (sources.length < 2) {
+      const fallback = await storage.getNews(undefined, 30, 0);
+      sources = fallback
+        .filter(a => a.category === category && a.source !== "Diário do Carioca")
+        .slice(0, 10);
+    }
+    if (sources.length === 0) {
+      console.log(`⚠️  [AI] Sem artigos fonte para "${category}" — pulando`);
+      return;
+    }
+
+    // Shuffle sources so each run uses a different subset
+    for (let i = sources.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [sources[i], sources[j]] = [sources[j], sources[i]];
+    }
+    const selectedSources = sources.slice(0, 8);
+
+    // Collect images already used by recent AI articles to avoid duplicates
+    const recentAIAll = await storage.getNews(undefined, 30, 0);
+    const usedImageUrls = recentAIAll
+      .filter(a => a.source === "Diário do Carioca" && a.imageUrl)
+      .map(a => a.imageUrl as string);
+
+    const generated = await generateArticle({
+      category,
+      sourceArticles: selectedSources,
+      usedImageUrls,
+    });
 
     await storage.createNewsArticle({
       title: generated.title,
@@ -87,7 +138,9 @@ async function runAIGeneration(trigger: "startup" | "scheduled") {
     await storage.clearCache();
     console.log(`✅ [AI] Artigo publicado: "${generated.title}"`);
   } catch (error: any) {
-    console.error(`❌ [AI] Falha na geração automática (${category}):`, error.message);
+    console.error(`❌ [AI] Falha na geração (${category}):`, error.message);
+  } finally {
+    aiGenerationRunning = false;
   }
 }
 

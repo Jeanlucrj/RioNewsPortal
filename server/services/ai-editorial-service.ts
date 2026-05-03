@@ -16,6 +16,7 @@ export interface GenerateOptions {
   sourceArticles: NewsArticle[];
   tone?: "jornalistico" | "descontraido" | "analitico";
   focus?: string;
+  usedImageUrls?: string[];
 }
 
 const categoryPrompts: Record<string, string> = {
@@ -29,7 +30,7 @@ const categoryPrompts: Record<string, string> = {
 };
 
 export async function generateArticle(options: GenerateOptions): Promise<GeneratedArticle> {
-  const { category, sourceArticles, tone = "jornalistico", focus } = options;
+  const { category, sourceArticles, tone = "jornalistico", focus, usedImageUrls = [] } = options;
 
   if (sourceArticles.length === 0) {
     throw new Error("Nenhum artigo fonte fornecido para geração");
@@ -105,8 +106,18 @@ As tags devem ser palavras-chave em minúsculas (ex: "flamengo", "carnaval", "ga
     throw new Error("Artigo gerado incompleto — faltam campos obrigatórios");
   }
 
-  // Get the first available valid image from the source articles
-  const sourceImage = sourceArticles.find(a => a.imageUrl && a.imageUrl.startsWith("http"))?.imageUrl;
+  // Pick a valid image not already used by recent AI articles
+  const usedSet = new Set(usedImageUrls);
+  const candidateImages = sourceArticles
+    .map(a => a.imageUrl)
+    .filter((url): url is string => !!url && url.startsWith("http") && !usedSet.has(url));
+  // Shuffle to avoid always picking the same first image
+  for (let i = candidateImages.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidateImages[i], candidateImages[j]] = [candidateImages[j], candidateImages[i]];
+  }
+  const sourceImage = candidateImages[0]
+    ?? sourceArticles.find(a => a.imageUrl && a.imageUrl.startsWith("http"))?.imageUrl;
 
   return {
     title: parsed.title,
