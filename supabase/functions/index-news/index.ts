@@ -145,10 +145,10 @@ serve(async (req: Request) => {
     });
   }
 
-  // Verify request comes from our Supabase project
+  // Verify request comes from our pg_net trigger via shared webhook secret
   const authHeader = req.headers.get("Authorization") ?? "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
+  const webhookSecret = Deno.env.get("WEBHOOK_SECRET") ?? "";
+  if (!webhookSecret || authHeader !== `Bearer ${webhookSecret}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
