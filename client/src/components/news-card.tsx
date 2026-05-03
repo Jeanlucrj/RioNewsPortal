@@ -51,7 +51,7 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
       className={`overflow-hidden hover-elevate active-elevate-2 transition-all duration-200 ${featured ? "md:col-span-2 md:row-span-2" : ""}`}
       data-testid={`card-article-${article.id}`}
     >
-      <div className={`relative overflow-hidden ${featured ? "h-96" : "h-48"}`}>
+      <div className={`relative overflow-hidden ${featured ? "h-48 sm:h-64 md:h-96" : "h-40 sm:h-48"}`}>
         <img
           src={imageUrl}
           alt={article.title}
@@ -66,7 +66,7 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
       </div>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <Badge
           className={`mb-3 uppercase text-xs font-bold tracking-wider px-3 py-1 rounded-md ${categoryColors[article.category]}`}
           data-testid={`badge-category-${article.id}`}
@@ -74,7 +74,7 @@ export function NewsCard({ article, featured = false, onClick }: NewsCardProps) 
           {categoryLabels[article.category]}
         </Badge>
         <h3
-          className={`font-semibold mb-2 line-clamp-2 ${featured ? "text-3xl font-serif" : "text-xl"}`}
+          className={`font-semibold mb-2 line-clamp-2 ${featured ? "text-xl sm:text-2xl md:text-3xl font-serif" : "text-base sm:text-xl"}`}
           data-testid={`text-title-${article.id}`}
         >
           {article.title}

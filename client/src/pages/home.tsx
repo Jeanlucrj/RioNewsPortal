@@ -78,29 +78,29 @@ export default function Home() {
           <>
             {/* Hero — only on first page */}
             {featuredNews && (
-              <section className="mb-12 px-4 sm:px-6 lg:px-8">
-                <div className="relative h-[520px] max-w-7xl mx-auto rounded-xl overflow-hidden">
+              <section className="mb-8 sm:mb-12 px-3 sm:px-4 md:px-6 lg:px-8">
+                <div className="relative h-[260px] sm:h-[360px] md:h-[460px] lg:h-[520px] max-w-7xl mx-auto rounded-xl overflow-hidden">
                   <img
                     src={featuredNews.imageUrl || getDefaultImage(featuredNews.category, featuredNews.title, featuredNews.description)}
                     alt={featuredNews.title}
                     className="absolute inset-0 w-full h-full object-cover object-center"
                     loading="eager"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="relative h-full flex items-end pb-12 px-10">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+                  <div className="relative h-full flex items-end pb-6 sm:pb-8 md:pb-10 lg:pb-12 px-4 sm:px-6 md:px-8 lg:px-10">
                     <div className="max-w-3xl">
-                      <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide rounded mb-4">
+                      <span className="inline-block px-2 py-0.5 sm:px-3 sm:py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide rounded mb-2 sm:mb-4">
                         {(featuredNews.source === "Diário do Carioca" || featuredNews.isManual) ? "Nossa Redação" : "Destaque"}
                       </span>
-                      <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif text-white mb-4 leading-tight line-clamp-3">
+                      <h2 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold font-serif text-white mb-2 sm:mb-3 md:mb-4 leading-tight line-clamp-3">
                         {featuredNews.title}
                       </h2>
-                      <p className="text-base md:text-lg text-white/90 mb-6 line-clamp-2">
+                      <p className="hidden sm:block text-sm md:text-base lg:text-lg text-white/90 mb-4 md:mb-6 line-clamp-2">
                         {featuredNews.description}
                       </p>
                       <Link
                         href={`/noticia/${encodeURIComponent(featuredNews.id)}`}
-                        className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 transition-colors"
+                        className="inline-flex items-center px-4 py-2 sm:px-5 sm:py-2.5 md:px-6 md:py-3 bg-primary text-primary-foreground rounded-md text-sm sm:text-base font-semibold hover:bg-primary/90 transition-colors"
                       >
                         Ler Notícia
                       </Link>
@@ -117,8 +117,8 @@ export default function Home() {
                 {/* News grid */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-6">
-                    <Newspaper className="h-6 w-6 text-primary" />
-                    <h2 className="text-3xl font-bold font-serif">Notícias Recentes</h2>
+                    <Newspaper className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold font-serif">Notícias Recentes</h2>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {gridNews.map((article) => (
