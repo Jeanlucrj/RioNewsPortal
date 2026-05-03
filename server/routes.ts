@@ -301,6 +301,11 @@ ${articles.map(article => `  <url>
           sources = all.filter(a => a.category === category && a.source !== "Diário do Carioca").slice(0, 10);
         }
         if (sources.length === 0) {
+          // Last resort: use any recent articles regardless of category
+          const anyRecent = await storage.getNews(undefined, 20, 0);
+          sources = anyRecent.filter(a => a.source !== "Diário do Carioca").slice(0, 8);
+        }
+        if (sources.length === 0) {
           results[category] = { status: "skipped", reason: "sem fontes" };
           continue;
         }

@@ -91,7 +91,7 @@ As tags devem ser palavras-chave em minúsculas (ex: "flamengo", "carnaval", "ga
   const result = await model.generateContent(prompt);
   const text = result.response.text();
 
-  // Extract JSON — Gemini sometimes wraps in markdown
+  // Extract JSON — Gemini sometimes wraps in markdown or has encoding issues
   const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) ||
     text.match(/```\s*([\s\S]*?)\s*```/) ||
     text.match(/(\{[\s\S]*\})/);
@@ -100,8 +100,22 @@ As tags devem ser palavras-chave em minúsculas (ex: "flamengo", "carnaval", "ga
     throw new Error("Resposta da IA não contém JSON válido");
   }
 
-  const jsonStr = (jsonMatch[1] || jsonMatch[0]).trim();
-  const parsed = JSON.parse(jsonStr) as GeneratedArticle;
+  let jsonStr = (jsonMatch[1] || jsonMatch[0]).trim();
+
+  // Sanitize common Gemini JSON issues: unescaped newlines inside strings
+  // Replace literal newlines inside JSON string values with \n escape
+  jsonStr = jsonStr.replace(/("(?:[^"\\]|\\.)*")/g, (match) =>
+    match.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t")
+  );
+
+  let parsed: GeneratedArticle;
+  try {
+    parsed = JSON.parse(jsonStr) as GeneratedArticle;
+  } catch {
+    // Last resort: strip everything after the last valid closing brace
+    const lastBrace = jsonStr.lastIndexOf("}");
+    parsed = JSON.parse(jsonStr.slice(0, lastBrace + 1)) as GeneratedArticle;
+  }
 
   if (!parsed.title || !parsed.description || !parsed.content) {
     throw new Error("Artigo gerado incompleto — faltam campos obrigatórios");
