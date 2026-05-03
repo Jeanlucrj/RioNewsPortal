@@ -8,6 +8,7 @@ import { SportsService } from "./services/sports-service.js";
 import { EventsService } from "./services/events-service.js";
 import { RSSService } from "./services/rss-service.js";
 import { generateArticle } from "./services/ai-editorial-service.js";
+import { sendWelcomeEmail } from "./services/email-service.js";
 import { registerUserSchema, loginUserSchema, createNewsArticleSchema, updateNewsArticleSchema, type NewsCategory, type NewsArticle } from "../shared/schema.js";
 
 const newsService = new NewsService();
@@ -284,10 +285,19 @@ ${articles.map(article => `  <url>
       if (!email || typeof email !== 'string' || !email.includes('@')) {
         return res.status(400).json({ error: "E-mail inválido" });
       }
-      
+
       await storage.addNewsletterSubscriber(email);
+
+      // Send welcome email via Resend (fire-and-forget — não bloqueia a resposta)
+      sendWelcomeEmail(email).catch(err =>
+        console.error("⚠️  Falha ao enviar e-mail de boas-vindas:", err.message)
+      );
+
       res.json({ message: "Inscrito com sucesso" });
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message?.includes("unique") || error?.code === "23505") {
+        return res.status(409).json({ error: "E-mail já cadastrado" });
+      }
       console.error("Error subscribing to newsletter:", error);
       res.status(500).json({ error: "Erro ao processar inscrição" });
     }
