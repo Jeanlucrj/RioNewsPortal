@@ -43,8 +43,13 @@ export default function Home() {
   const total = newsPage?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // Top 5 articles rotate as hero every 8 seconds (only on page 1)
-  const heroPool = page === 1 ? news.slice(0, 5) : [];
+  // Hero pool: articles from our newsroom first, then RSS — only on page 1
+  const heroPool = page === 1
+    ? [
+        ...news.filter(a => a.source === "Diário do Carioca" || a.isManual),
+        ...news.filter(a => a.source !== "Diário do Carioca" && !a.isManual),
+      ].slice(0, 5)
+    : [];
   const featuredNews = heroPool[heroIndex % Math.max(heroPool.length, 1)];
   const gridNews = page === 1 ? news.slice(1) : news;
 
@@ -74,27 +79,28 @@ export default function Home() {
             {/* Hero — only on first page */}
             {featuredNews && (
               <section className="mb-12 px-4 sm:px-6 lg:px-8">
-                <div className="relative h-[420px] max-w-5xl mx-auto rounded-xl overflow-hidden">
+                <div className="relative h-[520px] max-w-7xl mx-auto rounded-xl overflow-hidden">
                   <img
                     src={featuredNews.imageUrl || getDefaultImage(featuredNews.category, featuredNews.title, featuredNews.description)}
                     alt={featuredNews.title}
                     className="absolute inset-0 w-full h-full object-cover object-center"
+                    loading="eager"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                  <div className="relative h-full flex items-end pb-10 px-8">
-                    <div className="max-w-2xl">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="relative h-full flex items-end pb-12 px-10">
+                    <div className="max-w-3xl">
                       <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide rounded mb-4">
-                        Destaque
+                        {(featuredNews.source === "Diário do Carioca" || featuredNews.isManual) ? "Nossa Redação" : "Destaque"}
                       </span>
-                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-serif text-white mb-3 leading-tight line-clamp-3">
+                      <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif text-white mb-4 leading-tight line-clamp-3">
                         {featuredNews.title}
                       </h2>
-                      <p className="text-sm md:text-base text-white/90 mb-5 line-clamp-2">
+                      <p className="text-base md:text-lg text-white/90 mb-6 line-clamp-2">
                         {featuredNews.description}
                       </p>
                       <Link
                         href={`/noticia/${encodeURIComponent(featuredNews.id)}`}
-                        className="inline-flex items-center px-5 py-2.5 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 transition-colors"
+                        className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-md font-semibold hover:bg-primary/90 transition-colors"
                       >
                         Ler Notícia
                       </Link>
