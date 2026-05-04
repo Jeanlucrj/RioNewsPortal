@@ -2,6 +2,12 @@
     "buildCommand": "vite build",
     "outputDirectory": "dist",
     "installCommand": "npm install",
+    "crons": [
+        {
+            "path": "/api/cron/sync",
+            "schedule": "*/30 * * * *"
+        }
+    ],
     "rewrites": [
         {
             "source": "/api/:path*",
