@@ -1,7 +1,5 @@
 {
-    "buildCommand": "./node_modules/.bin/vite build",
     "outputDirectory": "dist",
-    "installCommand": "npm ci",
     "rewrites": [
         {
             "source": "/api/:path*",
