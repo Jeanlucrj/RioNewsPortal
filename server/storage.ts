@@ -311,14 +311,14 @@ export class MemStorage implements IStorage {
   }
 
   async getMostRead(limit: number = 5): Promise<NewsArticle[]> {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
     const rows = await db.select().from(newsArticlesTable)
       .where(
         and(
           eq(newsArticlesTable.isDraft, false),
-          gte(newsArticlesTable.publishedAt, sevenDaysAgo)
+          gte(newsArticlesTable.publishedAt, oneDayAgo)
         )
       )
       .orderBy(desc(newsArticlesTable.views), desc(newsArticlesTable.publishedAt))

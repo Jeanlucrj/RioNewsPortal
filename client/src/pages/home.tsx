@@ -28,11 +28,13 @@ export default function Home() {
   const { data: newsPage, isLoading: newsLoading } = useQuery<NewsPage>({
     queryKey: ["/api/news", page],
     queryFn: () => fetch(`/api/news?page=${page}&limit=${PAGE_SIZE}`).then((r) => r.json()),
+    refetchInterval: 300000,
   });
 
   const { data: mostRead } = useQuery<NewsArticle[]>({
     queryKey: ["/api/news/most-read"],
     queryFn: () => fetch("/api/news/most-read?limit=5").then((r) => r.json()),
+    refetchInterval: 300000,
   });
 
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
