@@ -306,27 +306,28 @@ ${articles.map(article => `  <url>
   
       // 3. AI article generation (one per cron run)
       if (process.env.GEMINI_API_KEY) {
-        const minute = new Date().getMinutes();
-        const idx = Math.floor(minute / 30) + Math.floor(Date.now() / 3600000);
-        const category = AI_CATEGORIES[idx % AI_CATEGORIES.length];
+        let category = AI_CATEGORIES[0];
+        let oldestTime = Date.now();
         
-        const cooldownHours = 6;
-        const cutoff = new Date(Date.now() - cooldownHours * 3600_000);
-        const recent = await storage.getNews(category as any, 10, 0);
-        const recentAI = recent.filter(
-          a => a.source === "Diário do Carioca" && new Date(a.publishedAt) > cutoff
-        );
-  
-        if (recentAI.length > 0) {
-          log.push(`⏭️  AI "${category}": artigo recente encontrado — cooldown ativo`);
-        } else {
-          log.push(`🤖 AI gerando artigo — categoria: ${category}`);
-          let sources = await storage.getNews(category as any, 20, 0);
-          sources = sources.filter(a => a.source !== "Diário do Carioca");
-          if (sources.length < 2) {
-            const all = await storage.getNews(undefined, 40, 0);
-            sources = all.filter(a => a.source !== "Diário do Carioca").slice(0, 10);
+        for (const cat of AI_CATEGORIES) {
+          // Busca os últimos 50 artigos desta categoria específica para achar o da IA
+          const catNews = await storage.getNews(cat as any, 50, 0);
+          const aiArticles = catNews.filter(a => a.source === "Diário do Carioca" || a.isManual);
+          
+          const lastTime = aiArticles.length > 0 ? new Date(aiArticles[0].publishedAt).getTime() : 0;
+          if (lastTime < oldestTime) {
+            oldestTime = lastTime;
+            category = cat;
           }
+        }
+        
+        log.push(`🤖 AI gerando artigo — categoria: ${category}`);
+        let sources = await storage.getNews(category as any, 20, 0);
+        sources = sources.filter(a => a.source !== "Diário do Carioca");
+        if (sources.length < 2) {
+          const all = await storage.getNews(undefined, 40, 0);
+          sources = all.filter(a => a.source !== "Diário do Carioca").slice(0, 10);
+        }
   
           if (sources.length === 0) {
             log.push(`⚠️  AI "${category}": sem fontes disponíveis`);
