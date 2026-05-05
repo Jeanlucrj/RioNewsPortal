@@ -361,9 +361,7 @@ ${articles.map(article => `  <url>
             });
             log.push(`✅ AI: "${generated.title.slice(0, 60)}"`);
           }
-        }
       }
-  
       await storage.clearCache();
       const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
       log.push(`⏱️  Total: ${elapsed}s`);
