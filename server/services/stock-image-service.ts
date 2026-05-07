@@ -17,6 +17,7 @@ const CATEGORY_BASE: Record<string, string> = {
   gastronomia:    "Rio de Janeiro gastronomia comida",
   internacional:  "Rio de Janeiro",
   "vida-noturna": "Rio de Janeiro noite",
+  cidade:         "Rio de Janeiro prefeitura infraestrutura saúde",
 };
 
 /**

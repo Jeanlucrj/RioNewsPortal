@@ -3,6 +3,7 @@ import type { NewsArticle, NewsCategory } from "../../shared/schema.js";
 import { detectCategory } from "../../shared/categorization.js";
 import { extractTags } from "../../shared/tags.js";
 import { randomUUID } from "crypto";
+import { fetchStockImage } from "./stock-image-service.js";
 
 interface RSSFeed {
   name: string;
@@ -119,73 +120,84 @@ export class RSSService {
         return [];
       }
 
-      const articles: NewsArticle[] = feed.items
-        .filter((item: any) => item.title && item.link)
-        .map((item: any) => {
-          let htmlContent = item['content:encoded'] || item.content || item.summary || "";
-          let description = this.stripHtml(item.contentSnippet || htmlContent);
+      const articles: NewsArticle[] = (await Promise.all(
+        feed.items
+          .filter((item: any) => item.title && item.link)
+          .map(async (item: any) => {
+            let htmlContent = item['content:encoded'] || item.content || item.summary || "";
+            let description = this.stripHtml(item.contentSnippet || htmlContent);
 
-          // Clean up RSS garbage text (e.g., Globo feeds)
-          description = description
-            .replace(/Initial plugin text/gi, "")
-            .replace(/✅\s*Clique aqui para seguir o novo canal.*?WhatsApp/gi, "")
-            .replace(/🗞️/g, "")
-            .replace(/\s\+\s/g, " - ")
-            .replace(/\s{2,}/g, " ")
-            .replace(/^-\s*/, "")
-            .trim();
+            // Clean up RSS garbage text (e.g., Globo feeds)
+            description = description
+              .replace(/Initial plugin text/gi, "")
+              .replace(/✅\s*Clique aqui para seguir o novo canal.*?WhatsApp/gi, "")
+              .replace(/🗞️/g, "")
+              .replace(/\s\+\s/g, " - ")
+              .replace(/\s{2,}/g, " ")
+              .replace(/^-\s*/, "")
+              .trim();
 
-          // If the feed has a specific category (not "geral"), use it directly
-          // This avoids misclassification (e.g., GloboEsporte articles are always sports)
-          let category: NewsCategory;
-          if (feedCategory && feedCategory !== "geral") {
-            category = feedCategory;
-          } else {
-            // Detect category using hybrid logic for general feeds
-            const externalCategories = Array.isArray(item.categories) ? item.categories : [];
-            category = detectCategory(
-              item.title,
-              description,
-              feedName,
-              externalCategories
-            );
-          }
-
-          // Extract image URL from various sources
-          let imageUrl = undefined;
-          if (item.enclosure?.url && (item.enclosure.type?.startsWith('image/') || item.enclosure.url.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
-            imageUrl = item.enclosure.url;
-          } else if (item['media:content']?.$ && item['media:content'].$.url) {
-            imageUrl = item['media:content'].$.url;
-          } else if (item['media:thumbnail']?.$ && item['media:thumbnail'].$.url) {
-            imageUrl = item['media:thumbnail'].$.url;
-          } else {
-            const imgMatch = /<img[^>]+src=(?:'|")([^'">]+)(?:'|")/i.exec(htmlContent);
-            if (imgMatch && imgMatch[1]) {
-              imageUrl = imgMatch[1];
+            // If the feed has a specific category (not "geral"), use it directly
+            let category: NewsCategory;
+            if (feedCategory && feedCategory !== "geral") {
+              category = feedCategory;
+            } else {
+              const externalCategories = Array.isArray(item.categories) ? item.categories : [];
+              category = detectCategory(
+                item.title,
+                description,
+                feedName,
+                externalCategories
+              );
             }
-          }
 
-          // Permitir notícias sem imagem apenas para a categoria 'cidade' (Prefeitura)
-          if (!imageUrl && category !== "cidade") return null;
+            // Extract image URL from various sources
+            let imageUrl = undefined;
+            if (item.enclosure?.url && (item.enclosure.type?.startsWith('image/') || item.enclosure.url.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+              imageUrl = item.enclosure.url;
+            } else if (item['media:content']?.$ && item['media:content'].$.url) {
+              imageUrl = item['media:content'].$.url;
+            } else if (item['media:thumbnail']?.$ && item['media:thumbnail'].$.url) {
+              imageUrl = item['media:thumbnail'].$.url;
+            } else {
+              const imgMatch = /<img[^>]+src=(?:'|")([^'">]+)(?:'|")/i.exec(htmlContent);
+              if (imgMatch && imgMatch[1]) {
+                imageUrl = imgMatch[1];
+              }
+            }
 
-          return {
-            id: item.guid || item.link || randomUUID(),
-            title: item.title,
-            description: description.substring(0, 300) + (description.length > 300 ? "..." : ""),
-            content: undefined,
-            imageUrl,
-            category,
-            source: feedName,
-            isManual: false,
-            publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
-            url: item.link,
-            author: item.creator || item.author,
-            tags: extractTags(item.title, description),
-          };
-        })
-        .filter((item): item is NonNullable<typeof item> => item !== null)
-        .slice(0, 10) as NewsArticle[];
+            const tags = extractTags(item.title, description);
+
+            // If no image, try to fetch from Pixabay/Pexels for "Cidade" category
+            if (!imageUrl && category === "cidade") {
+              try {
+                imageUrl = await fetchStockImage(category, tags, item.title) || undefined;
+              } catch (err: any) {
+                console.warn(`[RSS] Failed to fetch stock image for ${item.title}:`, err.message);
+              }
+            }
+
+            // Still no image? Skip it to maintain premium look (unless user requested placeholders)
+            if (!imageUrl) return null;
+
+            return {
+              id: item.guid || item.link || randomUUID(),
+              title: item.title,
+              description: description.substring(0, 300) + (description.length > 300 ? "..." : ""),
+              content: undefined,
+              imageUrl,
+              category,
+              source: feedName,
+              isManual: false,
+              publishedAt: item.pubDate || item.isoDate || new Date().toISOString(),
+              url: item.link,
+              author: item.creator || item.author,
+              tags,
+            };
+          })
+      ))
+        .filter((item): item is NewsArticle => item !== null)
+        .slice(0, 10);
 
       return articles;
     } catch (error: any) {
