@@ -24,6 +24,7 @@ const categoryConfig: Record<NewsCategory, { label: string; gradient: string }> 
   gastronomia: { label: "Gastronomia", gradient: "from-orange-600 to-orange-400" },
   internacional: { label: "Internacional", gradient: "from-blue-600 to-blue-400" },
   "vida-noturna": { label: "Vida Noturna", gradient: "from-purple-600 to-indigo-400" },
+  cidade: { label: "Cidade", gradient: "from-cyan-600 to-cyan-400" },
   geral: { label: "Geral", gradient: "from-primary to-chart-2" },
 };
 

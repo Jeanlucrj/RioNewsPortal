@@ -43,7 +43,7 @@ async function getNewsFromRSSCache(category?: NewsCategory): Promise<NewsArticle
 }
 
 // Categories to rotate through for AI generation
-const AI_CATEGORIES = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna"];
+const AI_CATEGORIES = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna", "cidade"];
 let aiCategoryIndex = 0;
 
 // Minimum hours between AI articles for the same category

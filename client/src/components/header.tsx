@@ -18,6 +18,7 @@ const categories: { id: NewsCategory; label: string; color: string }[] = [
   { id: "shows", label: "Shows", color: "shows" },
   { id: "gastronomia", label: "Gastronomia", color: "gastronomia" },
   { id: "internacional", label: "Internacional", color: "internacional" },
+  { id: "cidade", label: "Cidade", color: "cidade" },
   { id: "geral", label: "Geral", color: "primary" },
 ];
 

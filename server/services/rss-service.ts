@@ -76,17 +76,17 @@ const RSS_FEEDS: RSSFeed[] = [
   {
     name: "Prefeitura do Rio - Infraestrutura",
     url: "https://prefeitura.rio/categoria/infraestrutura/feed/",
-    category: "geral",
+    category: "cidade",
   },
   {
     name: "Prefeitura do Rio - Saúde",
     url: "https://prefeitura.rio/categoria/noticias/saude/feed/",
-    category: "geral",
+    category: "cidade",
   },
   {
     name: "Prefeitura do Rio - CET-Rio",
     url: "https://prefeitura.rio/categoria/noticias/cet-rio/feed",
-    category: "geral",
+    category: "cidade",
   },
 ];
 

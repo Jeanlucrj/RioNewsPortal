@@ -97,6 +97,7 @@
   --shows: 330 75% 55%;
   --gastronomia: 25 90% 55%;
   --internacional: 210 70% 50%;
+  --cidade: 195 85% 45%;
 
   /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
 
@@ -216,6 +217,7 @@
   --shows: 330 75% 60%;
   --gastronomia: 25 90% 60%;
   --internacional: 210 70% 60%;
+  --cidade: 195 80% 55%;
 
   /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
