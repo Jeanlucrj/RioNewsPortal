@@ -72,6 +72,22 @@ const RSS_FEEDS: RSSFeed[] = [
     url: "https://feeds.bbci.co.uk/portuguese/rss.xml",
     category: "internacional",
   },
+  // === PREFEITURA DO RIO ===
+  {
+    name: "Prefeitura do Rio - Infraestrutura",
+    url: "https://prefeitura.rio/noticias-infraestrutura/feed/",
+    category: "geral",
+  },
+  {
+    name: "Prefeitura do Rio - Saúde",
+    url: "https://prefeitura.rio/categoria/noticias/saude/feed/",
+    category: "geral",
+  },
+  {
+    name: "Prefeitura do Rio - CET-Rio",
+    url: "https://prefeitura.rio/categoria/noticias/cet-rio/feed",
+    category: "geral",
+  },
 ];
 
 export class RSSService {
