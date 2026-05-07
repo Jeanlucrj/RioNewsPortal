@@ -166,7 +166,8 @@ export class RSSService {
             }
           }
 
-          if (!imageUrl) return null;
+          // Permitir notícias sem imagem apenas para a categoria 'cidade' (Prefeitura)
+          if (!imageUrl && category !== "cidade") return null;
 
           return {
             id: item.guid || item.link || randomUUID(),
