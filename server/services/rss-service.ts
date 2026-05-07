@@ -75,7 +75,7 @@ const RSS_FEEDS: RSSFeed[] = [
   // === PREFEITURA DO RIO ===
   {
     name: "Prefeitura do Rio - Infraestrutura",
-    url: "https://prefeitura.rio/noticias-infraestrutura/feed/",
+    url: "https://prefeitura.rio/categoria/infraestrutura/feed/",
     category: "geral",
   },
   {
