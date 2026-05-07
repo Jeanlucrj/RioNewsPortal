@@ -28,6 +28,7 @@ const categoryPrompts: Record<string, string> = {
   internacional: "notícias internacionais com perspectiva e impacto para o público carioca",
   "vida-noturna": "vida noturna, bares, clubes, festas e entretenimento noturno no Rio de Janeiro",
   geral: "notícias gerais de Rio de Janeiro, cotidiano, política local e temas de interesse da cidade",
+  cidade: "notícias sobre a cidade do Rio de Janeiro: prefeitura, obras, transporte, saúde pública, bairros e serviços municipais",
 };
 
 export async function generateArticle(options: GenerateOptions): Promise<GeneratedArticle> {

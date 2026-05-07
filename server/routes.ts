@@ -383,7 +383,7 @@ ${articles.map(article => `  <url>
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const categories = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna"];
+    const categories = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna", "cidade"];
     const results: Record<string, any> = {};
 
     res.writeHead(200, { "Content-Type": "application/json", "Transfer-Encoding": "chunked" });
@@ -1268,7 +1268,7 @@ ${articles.map(article => `  <url>
       const articles = await storage.getNews(undefined, 500, 0);
       const baseUrl = process.env.SITE_URL || "https://odiariocarioca.com.br";
 
-      const categories = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna"];
+      const categories = ["geral", "esportes", "cultura", "shows", "gastronomia", "internacional", "vida-noturna", "cidade"];
 
       type SitemapUrl = { loc: string; priority: string; changefreq: string; lastmod?: string };
 

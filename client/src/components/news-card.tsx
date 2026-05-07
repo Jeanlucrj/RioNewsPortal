@@ -21,6 +21,7 @@ const categoryLabels: Record<string, string> = {
   internacional: "INTERNACIONAL",
   "vida-noturna": "VIDA NOTURNA",
   geral: "GERAL",
+  cidade: "CIDADE",
 };
 
 const categoryColors: Record<string, string> = {
@@ -31,6 +32,7 @@ const categoryColors: Record<string, string> = {
   internacional: "bg-blue-500 hover:bg-blue-600 text-white border-0",
   "vida-noturna": "bg-indigo-500 hover:bg-indigo-600 text-white border-0",
   geral: "bg-cyan-500 hover:bg-cyan-600 text-white border-0",
+  cidade: "bg-teal-500 hover:bg-teal-600 text-white border-0",
 };
 
 export function NewsCard({ article, featured = false, onClick }: NewsCardProps) {
