@@ -123,7 +123,17 @@ export class RSSService {
         .filter((item: any) => item.title && item.link)
         .map((item: any) => {
           let htmlContent = item['content:encoded'] || item.content || item.summary || "";
-          const description = this.stripHtml(item.contentSnippet || htmlContent);
+          let description = this.stripHtml(item.contentSnippet || htmlContent);
+
+          // Clean up RSS garbage text (e.g., Globo feeds)
+          description = description
+            .replace(/Initial plugin text/gi, "")
+            .replace(/✅\s*Clique aqui para seguir o novo canal.*?WhatsApp/gi, "")
+            .replace(/🗞️/g, "")
+            .replace(/\s\+\s/g, " - ")
+            .replace(/\s{2,}/g, " ")
+            .replace(/^-\s*/, "")
+            .trim();
 
           // If the feed has a specific category (not "geral"), use it directly
           // This avoids misclassification (e.g., GloboEsporte articles are always sports)
