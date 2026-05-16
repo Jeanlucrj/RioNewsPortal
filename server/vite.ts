@@ -19,7 +19,7 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-async function injectArticleOG(html: string, articleId: string, req: any): Promise<string> {
+export async function injectArticleOG(html: string, articleId: string, req: any): Promise<string> {
   try {
     const { storage } = await import("./storage.js");
     const article = await storage.getNewsById(articleId);

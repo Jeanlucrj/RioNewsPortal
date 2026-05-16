@@ -2,7 +2,8 @@
     "outputDirectory": "dist",
     "functions": {
         "api/index.ts": {
-            "maxDuration": 60
+            "maxDuration": 60,
+            "includeFiles": "dist/index.html"
         }
     },
     "rewrites": [
@@ -12,6 +13,10 @@
         },
         {
             "source": "/sitemap:path*",
+            "destination": "/api/index.ts"
+        },
+        {
+            "source": "/noticia/:path*",
             "destination": "/api/index.ts"
         },
         {

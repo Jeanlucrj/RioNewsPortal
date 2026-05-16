@@ -1,5 +1,8 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import passport from "./passport-config.js";
 import { authService } from "./services/auth-service.js";
 import { storage } from "./storage.js";
@@ -1305,6 +1308,27 @@ ${urlEntries}
       res.send(xml);
     } catch (error) {
       res.status(500).send("Erro ao gerar sitemap");
+    }
+  });
+
+  // Serve article pages with injected canonical + OG tags (Vercel production)
+  app.get("/noticia/:slug(*)", async (req: Request, res: Response) => {
+    try {
+      const { injectArticleOG } = await import("./vite.js");
+      const articleId = decodeURIComponent(req.params.slug);
+      const candidates = [
+        path.resolve(process.cwd(), "dist", "index.html"),
+        path.resolve(fileURLToPath(import.meta.url), "..", "..", "dist", "index.html"),
+      ];
+      let html = "";
+      for (const p of candidates) {
+        if (fs.existsSync(p)) { html = await fs.promises.readFile(p, "utf-8"); break; }
+      }
+      if (!html) return res.status(404).send("Not found");
+      html = await injectArticleOG(html, articleId, req);
+      res.status(200).set({ "Content-Type": "text/html" }).send(html);
+    } catch {
+      res.status(500).send("Error");
     }
   });
 
