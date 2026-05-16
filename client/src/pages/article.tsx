@@ -183,7 +183,7 @@ export default function Article() {
             {article.source && <span data-testid="text-article-source">Fonte: {article.source}</span>}
             {article.author && <span data-testid="text-article-author">Por {article.author}</span>}
             {article.url && (
-              <a href={article.url} target="_blank" rel="noopener noreferrer"
+              <a href={article.url} target="_blank" rel="noopener noreferrer nofollow"
                 className="flex items-center gap-1 text-primary hover:underline" data-testid="link-article-source">
                 <ExternalLink className="h-4 w-4" />
                 Ver fonte original
@@ -266,7 +266,7 @@ export default function Article() {
             <div className="mt-8 p-6 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground mb-3">Leia a matéria completa na fonte original:</p>
               <Button asChild data-testid="button-read-original">
-                <a href={article.url} target="_blank" rel="noopener noreferrer">
+                <a href={article.url} target="_blank" rel="noopener noreferrer nofollow">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Ver notícia original
                 </a>

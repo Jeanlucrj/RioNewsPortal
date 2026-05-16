@@ -32,6 +32,7 @@ async function injectArticleOG(html: string, articleId: string, req: any): Promi
     const image = article.imageUrl || `${baseUrl}/og-default.png`;
 
     const ogTags = `
+    <link rel="canonical" href="${pageUrl}" />
     <meta property="og:title" content="${title}" />
     <meta property="og:description" content="${description}" />
     <meta property="og:url" content="${pageUrl}" />
