@@ -59,7 +59,18 @@ export const categoryKeywords: Record<Exclude<NewsCategory, "geral">, string[]> 
         "trump", "biden", "macron", "putin", "xi jinping", "otan", "onu", "diplomacia",
         "chanceler", "itamaraty", "relações exteriores"
     ],
-    "vida-noturna": ["noite", "balada", "festa", "clube", "vida noturna", "boate", "rooftop", "lapa"],
+    "vida-noturna": [
+        "balada", "vida noturna", "boate", "nightclub", "night club",
+        "pista de dança", "dj set", "open bar", "happy hour", "after office", "after party",
+        "réveillon", "reveillon", "rooftop bar", "bares noturnos", "bar noturno",
+        "festa noturna", "pedra do sal", "rio scenarium", "clubbing",
+        "barzinho", "noite carioca", "noite no rio",
+    ],
+    cidade: [
+        "prefeitura do rio", "prefeitura municipal", "cet-rio", "obras municipais",
+        "manutenção urbana", "pavimentação", "iluminação pública", "calçada",
+        "secretaria municipal", "subprefeitura", "brt", "transcarioca",
+    ],
 };
 
 // Map source/API categories to our local categories
