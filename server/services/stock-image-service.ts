@@ -1,54 +1,120 @@
 /**
- * Busca fotos do Rio de Janeiro no Pixabay e Pexels.
- * A query é construída a partir das TAGS do artigo gerado pelo Gemini,
- * garantindo que a foto seja contextualmente relevante ao conteúdo.
+ * Busca fotos contextuais no Pixabay e Pexels.
+ * Queries em inglês para maximizar cobertura das APIs.
  *
  * Env vars (pelo menos uma):
  *   PIXABAY_API_KEY  — pixabay.com/api/docs
  *   PEXELS_API_KEY   — pexels.com/api
  */
 
-// Termos base por categoria — sempre inclui "Rio de Janeiro"
+// Base queries em inglês por categoria
 const CATEGORY_BASE: Record<string, string> = {
-  geral:          "Rio de Janeiro",
-  esportes:       "Rio de Janeiro esporte",
-  cultura:        "Rio de Janeiro cultura",
-  shows:          "Rio de Janeiro show música",
-  gastronomia:    "Rio de Janeiro gastronomia comida",
-  internacional:  "Rio de Janeiro",
-  "vida-noturna": "Rio de Janeiro noite",
-  cidade:         "Rio de Janeiro prefeitura infraestrutura saúde",
+  geral:          "Rio de Janeiro city",
+  esportes:       "Rio de Janeiro sport",
+  cultura:        "Rio de Janeiro culture art",
+  shows:          "Rio de Janeiro concert music",
+  gastronomia:    "Rio de Janeiro food restaurant",
+  internacional:  "international world news",
+  "vida-noturna": "Rio de Janeiro nightlife bar",
+  cidade:         "Rio de Janeiro city urban",
 };
 
-/**
- * Monta a query de busca priorizando as tags do artigo.
- * Tags geradas pelo Gemini são as mais semanticamente precisas.
- *
- * Exemplos:
- *   tags ["flamengo","brasileirao"] → "Rio de Janeiro flamengo brasileirao"
- *   tags ["carnaval","samba","lapa"] → "Rio de Janeiro carnaval samba lapa"
- */
-function buildQuery(category: string, tags: string[], title?: string): string {
-  const base = CATEGORY_BASE[category] ?? "Rio de Janeiro";
+// Queries específicas por subfeed da categoria cidade
+const FEED_QUERY: Record<string, string> = {
+  "cet-rio":        "Rio de Janeiro traffic roads transport street",
+  "saude":          "Rio de Janeiro health hospital medicine clinic",
+  "infraestrutura": "Rio de Janeiro construction urban infrastructure building",
+};
 
-  // Use tags as primary keywords (they're the most contextual)
-  if (tags.length > 0) {
-    const tagKeywords = tags
-      .map(t => t.replace(/-/g, " "))
-      .slice(0, 3)
-      .join(" ");
-    return `${base} ${tagKeywords}`;
+// Mapeamento português → inglês para extrair keywords do título
+const PT_EN: Array<[string, string]> = [
+  ["obras", "construction"],
+  ["obra", "construction"],
+  ["trânsito", "traffic"],
+  ["transito", "traffic"],
+  ["pavimentação", "pavement"],
+  ["calçada", "sidewalk"],
+  ["acidente", "accident"],
+  ["interdição", "road closure"],
+  ["semáforo", "traffic light"],
+  ["viaduto", "viaduct"],
+  ["túnel", "tunnel"],
+  ["ponte", "bridge"],
+  ["metrô", "subway"],
+  ["metro", "subway"],
+  ["ônibus", "bus"],
+  ["trem", "train"],
+  ["saúde", "health"],
+  ["hospital", "hospital"],
+  ["vacina", "vaccine"],
+  ["vacinação", "vaccination"],
+  ["dengue", "dengue mosquito"],
+  ["médico", "doctor"],
+  ["clinica", "clinic"],
+  ["água", "water"],
+  ["esgoto", "sewage"],
+  ["lixo", "garbage"],
+  ["escola", "school"],
+  ["creche", "daycare"],
+  ["colégio", "school"],
+  ["parque", "park"],
+  ["praça", "square plaza"],
+  ["iluminação", "street lighting"],
+  ["arborização", "trees urban"],
+  ["manutenção", "maintenance"],
+  ["prefeitura", "city hall"],
+  ["bairro", "neighborhood"],
+  ["favela", "favela community"],
+  ["comunidade", "community"],
+  ["praia", "beach"],
+  ["lagoa", "lake"],
+  ["carnaval", "carnival"],
+  ["rua", "street"],
+  ["avenida", "avenue"],
+];
+
+function titleKeywords(title?: string): string {
+  if (!title) return "";
+  const text = title.toLowerCase();
+  const found: string[] = [];
+  for (const [pt, en] of PT_EN) {
+    if (text.includes(pt)) {
+      found.push(en.split(" ")[0]);
+      if (found.length >= 2) break;
+    }
+  }
+  if (found.length > 0) return found.join(" ");
+  return title
+    .replace(/[^\w\sÀ-ú]/g, " ")
+    .split(" ")
+    .filter(w => w.length > 5)
+    .slice(0, 2)
+    .join(" ");
+}
+
+function buildQuery(category: string, tags: string[], title?: string, feedName?: string): string {
+  // Feed-specific query para subfeeds de cidade
+  if (feedName) {
+    const key = feedName
+      .toLowerCase()
+      .replace(/prefeitura do rio\s*[-–]?\s*/i, "")
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .trim();
+    for (const [feedKey, query] of Object.entries(FEED_QUERY)) {
+      if (key.includes(feedKey)) {
+        const kw = titleKeywords(title);
+        return kw ? `${query} ${kw}` : query;
+      }
+    }
   }
 
-  // Fallback: extract meaningful words from title
-  if (title) {
-    const words = title
-      .replace(/[^\w\sÀ-ú]/g, " ")
-      .split(" ")
-      .filter(w => w.length > 4)
-      .slice(0, 3)
-      .join(" ");
-    if (words) return `${base} ${words}`;
+  const base = CATEGORY_BASE[category] ?? "Rio de Janeiro city";
+  const kw = titleKeywords(title);
+
+  if (kw) return `${base} ${kw}`;
+
+  if (tags.length > 0) {
+    return `${base} ${tags.slice(0, 2).map(t => t.replace(/-/g, " ")).join(" ")}`;
   }
 
   return base;
@@ -57,6 +123,11 @@ function buildQuery(category: string, tags: string[], title?: string): string {
 function pickRandom<T>(arr: T[], max = 15): T {
   const pool = arr.slice(0, max);
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// Página aleatória 1–5 para variar o pool de resultados a cada chamada
+function randomPage(): number {
+  return Math.ceil(Math.random() * 5);
 }
 
 // ── Pixabay ───────────────────────────────────────────────────────────────────
@@ -68,13 +139,12 @@ async function fromPixabay(query: string): Promise<string | null> {
       `https://pixabay.com/api/?key=${key}` +
       `&q=${encodeURIComponent(query)}` +
       `&image_type=photo&orientation=horizontal` +
-      `&min_width=800&min_height=450&per_page=20&safesearch=true`;
+      `&min_width=800&min_height=450&per_page=20&page=${randomPage()}&safesearch=true`;
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json() as { hits?: { largeImageURL: string; webformatURL: string }[] };
     if (!data.hits?.length) return null;
-    const hit = pickRandom(data.hits);
-    return hit.largeImageURL || hit.webformatURL;
+    return pickRandom(data.hits).largeImageURL || pickRandom(data.hits).webformatURL;
   } catch (e: any) {
     console.warn(`⚠️  [Pixabay] "${query}":`, e.message);
     return null;
@@ -88,7 +158,7 @@ async function fromPexels(query: string): Promise<string | null> {
   try {
     const url =
       `https://api.pexels.com/v1/search` +
-      `?query=${encodeURIComponent(query)}&per_page=20&orientation=landscape`;
+      `?query=${encodeURIComponent(query)}&per_page=20&page=${randomPage()}&orientation=landscape`;
     const resp = await fetch(url, { headers: { Authorization: key } });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json() as {
@@ -109,26 +179,29 @@ async function fromPexels(query: string): Promise<string | null> {
  * Busca uma foto contextualmente relevante ao artigo.
  *
  * @param category  Categoria do artigo
- * @param tags      Tags geradas pelo Gemini — usadas como query principal
- * @param title     Título do artigo — fallback se tags vazias
- * @param usedUrls  URLs já usadas recentemente — evita repetição
+ * @param tags      Tags extraídas do artigo
+ * @param title     Título do artigo — usado para extrair keywords contextuais
+ * @param usedUrls  URLs já usadas nesta sessão — evita repetição entre artigos
+ * @param feedName  Nome do feed RSS — habilita queries específicas por subfeed
  */
 export async function fetchStockImage(
   category: string,
   tags: string[] = [],
   title?: string,
-  usedUrls: Set<string> = new Set()
+  usedUrls: Set<string> = new Set(),
+  feedName?: string,
 ): Promise<string | null> {
-  const query = buildQuery(category, tags, title);
-  console.log(`🖼️  [stock] query: "${query}"`);
+  const query = buildQuery(category, tags, title, feedName);
+  console.log(`🖼️  [stock] query: "${query}" (feed: ${feedName ?? "—"})`);
 
-  // Try with full contextual query first
   let image = (await fromPixabay(query)) ?? (await fromPexels(query));
 
-  // If image was already used, retry with category-only query for variety
+  // Imagem já usada: tenta com query mais ampla do subfeed
   if (image && usedUrls.has(image)) {
-    const broadQuery = CATEGORY_BASE[category] ?? "Rio de Janeiro";
-    console.log(`🔄 [stock] imagem já usada — retry com "${broadQuery}"`);
+    const broadQuery = feedName
+      ? buildQuery(category, [], undefined, feedName)
+      : (CATEGORY_BASE[category] ?? "Rio de Janeiro city");
+    console.log(`🔄 [stock] imagem repetida — retry com "${broadQuery}"`);
     image = (await fromPixabay(broadQuery)) ?? (await fromPexels(broadQuery)) ?? image;
   }
 

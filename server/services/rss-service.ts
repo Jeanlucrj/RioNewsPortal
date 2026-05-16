@@ -120,6 +120,9 @@ export class RSSService {
         return [];
       }
 
+      // Shared set to avoid repeating the same stock image within this feed batch
+      const usedImageUrls = new Set<string>();
+
       const articles: NewsArticle[] = (await Promise.all(
         feed.items
           .filter((item: any) => item.title && item.link)
@@ -171,7 +174,11 @@ export class RSSService {
             // If no image, try to fetch from Pixabay/Pexels for "Cidade" category
             if (!imageUrl && category === "cidade") {
               try {
-                imageUrl = await fetchStockImage(category, tags, item.title) || undefined;
+                const fetched = await fetchStockImage(category, tags, item.title, usedImageUrls, feedName) || undefined;
+                if (fetched) {
+                  imageUrl = fetched;
+                  usedImageUrls.add(fetched);
+                }
               } catch (err: any) {
                 console.warn(`[RSS] Failed to fetch stock image for ${item.title}:`, err.message);
               }
